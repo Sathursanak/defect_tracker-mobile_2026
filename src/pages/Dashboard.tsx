@@ -12,7 +12,6 @@ import { useNavigation } from '@react-navigation/native';
 import StatusCard from '../components/StatusCard';
 import ProjectCard from '../components/ProjectCard';
 import TopHeader from '../components/TopHeader';
-import BackButton from '../components/BackButton';
 import Footer from '../components/Footer';
 import { mockProjects } from '../data/mockData';
 
@@ -74,34 +73,50 @@ const Dashboard = () => {
   };
 
   // Create status cards with dynamic counts
-  const statusCards = [
-    {
-      key: 'high',
-      label: 'High Risk Projects',
-      count: projectCounts.high,
-      desc: 'Immediate attention required',
-      color: '#c62828',
-      icon: <Ionicons name="alert-circle-outline" size={36} color="#c62828" />,
-    },
-    {
-      key: 'medium',
-      label: 'Medium Risk Projects',
-      count: projectCounts.medium,
-      desc: 'Monitor progress closely',
-      color: '#f9a825',
-      icon: <Ionicons name="time-outline" size={36} color="#f9a825" />,
-    },
-    {
-      key: 'low',
-      label: 'Low Risk Projects',
-      count: projectCounts.low,
-      desc: 'Stable and on track',
-      color: '#2ecc40',
-      icon: (
-        <Ionicons name="checkmark-circle-outline" size={36} color="#2ecc40" />
-      ),
-    },
-  ];
+ const statusCards = [
+  {
+    key: 'high',
+    label: 'High Risk Projects',
+    count: projectCounts.high,
+    desc: 'Needs attention',
+    color: '#c62828',
+    icon: (
+      <Ionicons
+        name="alert-circle-outline"
+        size={36}
+        color="#c62828"
+      />
+    ),
+  },
+  {
+    key: 'medium',
+    label: 'Medium Risk Projects',
+    count: projectCounts.medium,
+    desc: 'Monitor closely',
+    color: '#f9a825',
+    icon: (
+      <Ionicons
+        name="time-outline"
+        size={36}
+        color="#f9a825"
+      />
+    ),
+  },
+  {
+    key: 'low',
+    label: 'Low Risk Projects',
+    count: projectCounts.low,
+    desc: 'On track',
+    color: '#2ecc40',
+    icon: (
+      <Ionicons
+        name="checkmark-circle-outline"
+        size={36}
+        color="#2ecc40"
+      />
+    ),
+  },
+];
 
   const filteredProjects =
     selectedFilter === 'all'

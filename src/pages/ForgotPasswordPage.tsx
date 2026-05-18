@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   StatusBar,
+  ImageBackground,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import BackButton from '../components/BackButton';
@@ -20,10 +21,12 @@ const ForgotPasswordPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={require('../assets/images/background.png')}
+      style={styles.container}
+      resizeMode="cover"
+    >
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <View style={styles.glowCircleTop} />
-      <View style={styles.glowCircleBottom} />
       <View style={styles.overlay}>
         <BackButton
           onPress={() => navigation.goBack()}
@@ -128,36 +131,13 @@ const ForgotPasswordPage = () => {
           </Text>
         </View>
       </View>
-    </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
-  },
-  glowCircleTop: {
-    position: 'absolute',
-    top: -100,
-    right: -50,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: '#60A5FA',
-    opacity: 0.15,
-    transform: [{ scale: 1.5 }],
-  },
-  glowCircleBottom: {
-    position: 'absolute',
-    bottom: 50,
-    left: -100,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: '#60A5FA',
-    opacity: 0.1,
-    transform: [{ scale: 1.5 }],
   },
   overlay: {
     flex: 1,

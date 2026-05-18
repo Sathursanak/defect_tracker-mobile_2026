@@ -18,14 +18,15 @@ interface FooterProps {
 const Footer: React.FC<FooterProps> = ({ style }) => {
   const navigation = useNavigation();
   const route = useRoute();
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState<'home' | ''>('');
 
   // Update active tab based on current route
   useEffect(() => {
     if (route.name === 'Dashboard') {
       setActiveTab('home');
+    } else {
+      setActiveTab('');
     }
-    // Add other route mappings as needed
   }, [route.name]);
 
   const handleTabPress = (tabName: string, onPress?: () => void) => {
@@ -58,7 +59,7 @@ const Footer: React.FC<FooterProps> = ({ style }) => {
         <Text style={styles.iconLabel}>Home</Text>
       </TouchableOpacity>
 
-      <View
+      {/* <View
         style={[
           styles.iconButton,
           activeTab === 'notifications' && styles.activeButton,
@@ -66,7 +67,7 @@ const Footer: React.FC<FooterProps> = ({ style }) => {
       >
         <NotificationBell iconColor="#ffffff" />
         <Text style={styles.iconLabel}>Notifications</Text>
-      </View>
+      </View> */}
 
       <View
         style={[

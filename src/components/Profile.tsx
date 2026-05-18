@@ -11,20 +11,9 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useAuth } from '../context/AuthContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// Mock user data - in a real app, this would come from your auth/user context
-const mockUserData = {
-  name: 'John Doe',
-  email: 'john.doe@company.com',
-  role: 'Senior QA Engineer',
-  department: 'Quality Assurance',
-  joinDate: 'January 2022',
-  projectsAssigned: 5,
-  defectsReported: 127,
-  defectsResolved: 98,
-};
 
 interface ProfileProps {
   iconColor?: string;
@@ -33,6 +22,19 @@ interface ProfileProps {
 const Profile: React.FC<ProfileProps> = ({ iconColor = '#60A5FA' }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const navigation = useNavigation();
+  const { user, logout } = useAuth();
+
+  const profileData = user ?? {
+    username: 'guest',
+    fullName: 'Guest User',
+    email: 'guest@defecttracker.com',
+    role: 'Guest',
+    department: 'N/A',
+    joinDate: 'N/A',
+    projectsAssigned: 0,
+    defectsReported: 0,
+    defectsResolved: 0,
+  };
 
   const handleProfilePress = () => {
     setIsModalVisible(true);
@@ -56,7 +58,7 @@ const Profile: React.FC<ProfileProps> = ({ iconColor = '#60A5FA' }) => {
           style: 'destructive',
           onPress: () => {
             setIsModalVisible(false);
-            // Navigate back to Welcome screen (which will reset the navigation stack)
+            logout();
             (navigation as any).reset({
               index: 0,
               routes: [{ name: 'Welcome' }],
@@ -68,10 +70,10 @@ const Profile: React.FC<ProfileProps> = ({ iconColor = '#60A5FA' }) => {
     );
   };
 
-  const handleEditProfile = () => {
-    // TODO: Navigate to edit profile screen
-    Alert.alert('Edit Profile', 'Edit profile functionality coming soon!');
-  };
+  // const handleEditProfile = () => {
+  //   // TODO: Navigate to edit profile screen
+  //   Alert.alert('Edit Profile', 'Edit profile functionality coming soon!');
+  // };
 
   const handleChangePassword = () => {
     // TODO: Navigate to change password screen
@@ -115,8 +117,8 @@ const Profile: React.FC<ProfileProps> = ({ iconColor = '#60A5FA' }) => {
                 <View style={styles.avatar}>
                   <Ionicons name="person" size={40} color="#ffffff" />
                 </View>
-                <Text style={styles.userName}>{mockUserData.name}</Text>
-                <Text style={styles.userRole}>{mockUserData.role}</Text>
+                <Text style={styles.userName}>{profileData.fullName}</Text>
+                <Text style={styles.userRole}>{profileData.role}</Text>
               </View>
 
               {/* Profile Details */}
@@ -125,7 +127,7 @@ const Profile: React.FC<ProfileProps> = ({ iconColor = '#60A5FA' }) => {
                   <Ionicons name="mail-outline" size={20} color="#6b7280" />
                   <View style={styles.detailContent}>
                     <Text style={styles.detailLabel}>Email</Text>
-                    <Text style={styles.detailValue}>{mockUserData.email}</Text>
+                    <Text style={styles.detailValue}>{profileData.email}</Text>
                   </View>
                 </View>
 
@@ -134,7 +136,7 @@ const Profile: React.FC<ProfileProps> = ({ iconColor = '#60A5FA' }) => {
                   <View style={styles.detailContent}>
                     <Text style={styles.detailLabel}>Department</Text>
                     <Text style={styles.detailValue}>
-                      {mockUserData.department}
+                      {profileData.department}
                     </Text>
                   </View>
                 </View>
@@ -144,46 +146,23 @@ const Profile: React.FC<ProfileProps> = ({ iconColor = '#60A5FA' }) => {
                   <View style={styles.detailContent}>
                     <Text style={styles.detailLabel}>Joined</Text>
                     <Text style={styles.detailValue}>
-                      {mockUserData.joinDate}
+                      {profileData.joinDate}
                     </Text>
                   </View>
                 </View>
               </View>
 
-              {/* Stats Section */}
-              <View style={styles.statsSection}>
-                <Text style={styles.sectionTitle}>Statistics</Text>
-                <View style={styles.statsGrid}>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>
-                      {mockUserData.projectsAssigned}
-                    </Text>
-                    <Text style={styles.statLabel}>Projects</Text>
-                  </View>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>
-                      {mockUserData.defectsReported}
-                    </Text>
-                    <Text style={styles.statLabel}>Reported</Text>
-                  </View>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>
-                      {mockUserData.defectsResolved}
-                    </Text>
-                    <Text style={styles.statLabel}>Resolved</Text>
-                  </View>
-                </View>
-              </View>
+              
 
               {/* Action Buttons */}
               <View style={styles.actionsSection}>
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   style={styles.actionButton}
                   onPress={handleEditProfile}
                 >
                   <Ionicons name="create-outline" size={20} color="#3b82f6" />
                   <Text style={styles.actionButtonText}>Edit Profile</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
 
                 <TouchableOpacity
                   style={styles.actionButton}

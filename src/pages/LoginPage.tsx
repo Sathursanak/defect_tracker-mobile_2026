@@ -6,23 +6,89 @@ import {
   TextInput,
   TouchableOpacity,
   StatusBar,
+  ImageBackground,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import BackButton from '../components/BackButton';
 import RoundIcon from '../components/RoundIcon';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useAuth, UserProfile } from '../context/AuthContext';
+
+const mockUsers: UserProfile[] = [
+  {
+    username: 'admin',
+    password: 'admin',
+    fullName: 'Admin User',
+    role: 'Administrator',
+    email: 'admin@defecttracker.com',
+    department: 'Operations',
+    joinDate: 'January 2022',
+    projectsAssigned: 8,
+    defectsReported: 213,
+    defectsResolved: 197,
+  },
+  {
+    username: 'qa',
+    password: 'qa123',
+    fullName: 'QA Specialist',
+    role: 'Quality Analyst',
+    email: 'qa@defecttracker.com',
+    department: 'Quality Assurance',
+    joinDate: 'March 2023',
+    projectsAssigned: 5,
+    defectsReported: 152,
+    defectsResolved: 140,
+  },
+  {
+    username: 'dev',
+    password: 'dev123',
+    fullName: 'Developer',
+    role: 'Engineer',
+    email: 'dev@defecttracker.com',
+    department: 'Engineering',
+    joinDate: 'July 2023',
+    projectsAssigned: 6,
+    defectsReported: 88,
+    defectsResolved: 79,
+  },
+];
 
 const LoginPage = () => {
   const navigation = useNavigation();
+  const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [loginError, setLoginError] = useState('');
+
+  const handleSignIn = () => {
+    const user = mockUsers.find(
+      item => item.username.toLowerCase() === username.trim().toLowerCase(),
+    );
+
+    if (!user) {
+      setLoginError('User not found. Please check your username.');
+      return;
+    }
+
+    if (user.password !== password) {
+      setLoginError('Incorrect password. Please try again.');
+      return;
+    }
+
+    setLoginError('');
+    login(user);
+    (navigation as any).navigate('Dashboard');
+  };
+
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={require('../assets/images/background.png')}
+      style={styles.container}
+      resizeMode="cover"
+    >
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <View style={styles.glowCircleTop} />
-      <View style={styles.glowCircleBottom} />
       <View style={styles.overlay}>
         <BackButton
           onPress={() => navigation.goBack()}
@@ -108,50 +174,25 @@ const LoginPage = () => {
             </TouchableOpacity>
           </View>
 
+          {loginError ? (
+            <Text style={styles.errorText}>{loginError}</Text>
+          ) : null}
+
           <TouchableOpacity
             style={styles.signInButton}
-            onPress={() => {
-              if (username === 'admin' && password === 'admin') {
-                (navigation as any).navigate('Dashboard');
-              } else {
-                // Optionally show an error or do nothing
-              }
-            }}
+            onPress={handleSignIn}
           >
             <Text style={styles.signInButtonText}>Sign In</Text>
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
-  },
-  glowCircleTop: {
-    position: 'absolute',
-    top: -100,
-    right: -50,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: '#60A5FA',
-    opacity: 0.15,
-    transform: [{ scale: 1.5 }],
-  },
-  glowCircleBottom: {
-    position: 'absolute',
-    bottom: 50,
-    left: -100,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: '#60A5FA',
-    opacity: 0.1,
-    transform: [{ scale: 1.5 }],
   },
   overlay: {
     flex: 1,
@@ -256,6 +297,13 @@ const styles = StyleSheet.create({
     color: '#60A5FA',
     fontWeight: '700',
     fontSize: 15,
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 12,
+    marginTop: -4,
   },
   signInButton: {
     backgroundColor: '#60A5FA',

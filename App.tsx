@@ -6,16 +6,18 @@ import LoginPage from './src/pages/LoginPage';
 import ForgotPasswordPage from './src/pages/ForgotPasswordPage';
 import Dashboard from './src/pages/Dashboard';
 import ProjectDetails from './src/pages/ProjectDetails';
+import { AuthProvider } from './src/context/AuthContext';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName="Welcome"
-        screenOptions={{ headerShown: false }}
-      >
+    <AuthProvider>
+      <NavigationContainer>
+        <Stack.Navigator
+          initialRouteName="Welcome"
+          screenOptions={{ headerShown: false }}
+        >
         <Stack.Screen name="Welcome" component={Welcome} />
         <Stack.Screen name="Login" component={LoginPage} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordPage} />
@@ -23,5 +25,6 @@ export default function App() {
         <Stack.Screen name="ProjectDetails" component={ProjectDetails} />
       </Stack.Navigator>
     </NavigationContainer>
+    </AuthProvider>
   );
 }

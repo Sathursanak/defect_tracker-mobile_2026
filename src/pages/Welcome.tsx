@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Dimensions,
   StatusBar,
+  ImageBackground,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -81,11 +82,12 @@ const Welcome = () => {
   }, [fadeAnim, slideAnim, scaleAnim]);
 
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={require('../assets/images/background.png')}
+      style={styles.container}
+      resizeMode="cover"
+    >
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      {/* Decorative ambient glow elements */}
-      <View style={styles.glowCircleTop} />
-      <View style={styles.glowCircleBottom} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
@@ -146,41 +148,13 @@ const Welcome = () => {
         </Animated.View>
 
       </ScrollView>
-    </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
-  },
-  background: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-  },
-  glowCircleTop: {
-    position: 'absolute',
-    top: -100,
-    right: -50,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: '#60A5FA',
-    opacity: 0.15,
-    transform: [{ scale: 1.5 }],
-  },
-  glowCircleBottom: {
-    position: 'absolute',
-    bottom: 50,
-    left: -100,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: '#60A5FA',
-    opacity: 0.15,
-    transform: [{ scale: 1.5 }],
   },
   scrollContent: {
     flexGrow: 1,
