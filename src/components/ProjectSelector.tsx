@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, forwardRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
@@ -8,12 +8,14 @@ interface ProjectSelectorProps {
   onProjectSelect: (project: string) => void;
 }
 
-const ProjectSelector: React.FC<ProjectSelectorProps> = ({
+const ProjectSelector = forwardRef<ScrollView, ProjectSelectorProps>(({
   projects,
   selectedProject,
   onProjectSelect
-}) => {
+}, ref) => {
   const scrollViewRef = useRef<ScrollView>(null);
+
+  React.useImperativeHandle(ref, () => scrollViewRef.current as ScrollView);
 
   const scrollLeft = () => {
     scrollViewRef.current?.scrollTo({ x: -100, animated: true });
@@ -58,7 +60,9 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       </TouchableOpacity>
     </View>
   );
-};
+});
+
+ProjectSelector.displayName = 'ProjectSelector';
 
 const styles = StyleSheet.create({
   container: {

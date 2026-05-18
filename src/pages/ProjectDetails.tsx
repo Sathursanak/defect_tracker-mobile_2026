@@ -6,7 +6,7 @@ import BackButton from '../components/BackButton';
 import Footer from '../components/Footer';
 import ProjectSelector from '../components/ProjectSelector';
 import SeverityBreakdown from '../components/SeverityBreakdown';
-import DefectIndicators from './DefectIndicators';
+// import DefectIndicators from './DefectIndicators';
 import { mockProjects, getProjectData } from '../data/mockData';
 
 type RootStackParamList = {
@@ -22,10 +22,22 @@ const ProjectDetails = () => {
   const navigation = useNavigation();
   const route = useRoute<ProjectDetailsRouteProp>();
   const { projectName: initialProject } = route.params;
+  const scrollViewRef = React.useRef<ScrollView>(null);
+  const projectSelectorRef = React.useRef<ScrollView>(null);
 
   const [selectedProject, setSelectedProject] = useState(initialProject);
 
   const allProjects = mockProjects.map(project => project.name);
+
+  const getOrderedProjects = () => {
+    const ordered = [...allProjects];
+    const selectedIndex = ordered.indexOf(selectedProject);
+    if (selectedIndex > 0) {
+      const [selected] = ordered.splice(selectedIndex, 1);
+      ordered.unshift(selected);
+    }
+    return ordered;
+  };
 
   const getCurrentProjectRisk = () => {
     const projectData = getProjectData(selectedProject);
@@ -36,6 +48,8 @@ const ProjectDetails = () => {
 
   const handleProjectSelect = (project: string) => {
     setSelectedProject(project);
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    projectSelectorRef.current?.scrollTo({ x: 0, animated: true });
   };
 
   const getDefectData = () => {
@@ -82,20 +96,24 @@ const ProjectDetails = () => {
     <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
       <TopHeader title={`${selectedProject} Details`} />
       <ScrollView
+        ref={scrollViewRef}
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
       >
 
         <View style={styles.projectSelectorContainer}>
           <ProjectSelector
-            projects={allProjects}
+            ref={projectSelectorRef}
+            projects={getOrderedProjects()}
             selectedProject={selectedProject}
             onProjectSelect={handleProjectSelect}
           />
         </View>
 
         <View style={styles.projectHeader}>
-          <Text style={styles.projectTitle}>{selectedProject}</Text>
+          <Text style={styles.projectTitle} numberOfLines={2} ellipsizeMode="tail">
+            {selectedProject}
+          </Text>
           <View
             style={[
               styles.statusBadge,
@@ -121,9 +139,9 @@ const ProjectDetails = () => {
 
         <SeverityBreakdown defectData={defectData} />
 
-        <View style={styles.indicatorsContainer}>
+        {/* <View style={styles.indicatorsContainer}>
           <DefectIndicators defectData={defectData} />
-        </View>
+        </View> */}
       </ScrollView>
       <Footer />
     </View>
@@ -184,11 +202,15 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#60A5FA',
+    flex: 1,
+    flexShrink: 1,
+    marginRight: 12,
   },
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
+    marginLeft: 8,
   },
   statusText: {
     color: '#fff',
