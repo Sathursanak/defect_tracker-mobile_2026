@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,15 @@ import {
   TouchableOpacity,
   Modal,
   Dimensions,
+  ScrollView,
+  Animated,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import PieChart from 'react-native-pie-chart';
 
 interface SeverityBreakdownProps {
   defectData: Record<string, Record<string, number>>;
+  onScrollDown?: () => void;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -25,9 +28,69 @@ const getCardWidth = () => {
 
 const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
   defectData = {},
+  onScrollDown,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSeverity, setSelectedSeverity] = useState<string>('');
+
+  // Scroll Position Tracking for Arrows
+  const horizontalScrollRef = useRef<ScrollView>(null);
+  const [currentScrollX, setCurrentScrollX] = useState(0);
+  const [contentWidth, setContentWidth] = useState(0);
+
+  // Micro-Animations
+  const animX = useRef(new Animated.Value(-8)).current;
+  const animY = useRef(new Animated.Value(-6)).current;
+
+  useEffect(() => {
+    // Horizontal Swiping Animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animX, {
+          toValue: 8,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animX, {
+          toValue: -8,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      ])
+    ).start();
+
+    // Vertical Bouncing Animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animY, {
+          toValue: 6,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animY, {
+          toValue: -6,
+          duration: 800,
+          useNativeDriver: true,
+        })
+      ])
+    ).start();
+  }, []);
+
+  const scrollLeft = () => {
+    const newX = Math.max(0, currentScrollX - 162);
+    horizontalScrollRef.current?.scrollTo({ x: newX, animated: true });
+    setCurrentScrollX(newX);
+  };
+
+  const scrollRight = () => {
+    const newX = Math.min(contentWidth - SCREEN_WIDTH, currentScrollX + 162);
+    horizontalScrollRef.current?.scrollTo({ x: newX, animated: true });
+    setCurrentScrollX(newX);
+  };
+
+  const handleScroll = (event: any) => {
+    setCurrentScrollX(event.nativeEvent.contentOffset.x);
+  };
 
   const countRemarks = (data: Record<string, Record<string, number>>) =>
     Object.values(data).reduce((severitySum, severityData) => {
@@ -162,16 +225,17 @@ const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
         key.toLowerCase() === 'high'
           ? '#c62828'
           : key.toLowerCase() === 'medium'
-          ? '#f9a825'
-          : key.toLowerCase() === 'low'
-          ? '#2ecc40'
-          : '#3b82f6',
+            ? '#f9a825'
+            : key.toLowerCase() === 'low'
+              ? '#2ecc40'
+              : '#3b82f6',
     }));
 
   return (
     <View>
       <Text style={styles.sectionTitle}>Defect Severity Breakdown</Text>
 
+      {/* Remarks/Defects counts summary cards */}
       <View style={styles.summaryRow}>
         <View style={[styles.summaryBadge, styles.remarkBadge]}>
           <View style={styles.summaryHeader}>
@@ -193,77 +257,110 @@ const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
         </View>
       </View>
 
-      <View style={styles.defectCardsContainer}>
-        {severityConfig.map(({ key, title, color }) => {
-          const data = defectData[key];
-          const statusEntries = data
-            ? Object.entries(data).filter(
+      {/* Swipeable cards with left & right click controllers */}
+      <View style={styles.carouselContainer}>
+        {currentScrollX > 10 && (
+          <TouchableOpacity
+            style={[styles.arrowButton, styles.leftArrow]}
+            activeOpacity={0.85}
+            onPress={scrollLeft}
+          >
+            <Ionicons name="chevron-back" size={20} color="#4b5563" />
+          </TouchableOpacity>
+        )}
+
+        <ScrollView
+          ref={horizontalScrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={handleScroll}
+          onContentSizeChange={(w) => setContentWidth(w)}
+          contentContainerStyle={styles.defectCardsContainer}
+        >
+          {severityConfig.map(({ key, title, color }) => {
+            const data = defectData[key];
+            const statusEntries = data
+              ? Object.entries(data).filter(
                 ([status]) => status.toLowerCase() !== 'total',
               )
-            : [];
-          const total = data
-            ? data.total ?? statusEntries.reduce((sum, [, value]) => sum + value, 0)
-            : 0;
+              : [];
+            const total = data
+              ? data.total ?? statusEntries.reduce((sum, [, value]) => sum + value, 0)
+              : 0;
 
-          return (
-            <View
-              key={key}
-              style={[styles.defectCard, { borderTopColor: color }]}
-            >
-              <View style={styles.cardHeader}>
-                <Text
-                  style={[styles.defectCardTitle, { color }]}
-                  numberOfLines={2}
-                  ellipsizeMode="tail"
-                >
-                  {title}
-                </Text>
-                <Text style={styles.defectTotal}>{total}</Text>
-              </View>
-
-              <View style={styles.defectStatsGrid}>
-                {statusEntries.length === 0 ? (
-                  <Text style={styles.noStatusText}>No status data available</Text>
-                ) : (
-                  statusEntries.map(([status, value], idx) => (
-                    <View key={idx} style={styles.statItem}>
-                      <View
-                        style={[
-                          styles.dot,
-                          {
-                            backgroundColor:
-                              STATUS_COLORS[status.toLowerCase()] || '#3b82f6',
-                          },
-                        ]}
-                      />
-                      <Text
-                        style={styles.statText}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        {status.toUpperCase()}
-                      </Text>
-                      <Text style={styles.statValue}>{value}</Text>
-                    </View>
-                  ))
-                )}
-              </View>
-
-              <TouchableOpacity
-                style={[
-                  styles.viewChartButton,
-                  { backgroundColor: color + '20', borderColor: color },
-                ]}
-                onPress={() => handleViewChart(key)}
+            return (
+              <View
+                key={key}
+                style={[styles.defectCard, { borderTopColor: color }]}
               >
-                <Text style={[styles.viewChartText, { color }]}>
-                  View Chart
-                </Text>
-              </TouchableOpacity>
-            </View>
-          );
-        })}
+                <View style={styles.cardHeader}>
+                  <Text
+                    style={[styles.defectCardTitle, { color }]}
+                    numberOfLines={2}
+                    ellipsizeMode="tail"
+                  >
+                    {title}
+                  </Text>
+                  <Text style={styles.defectTotal}>{total}</Text>
+                </View>
+
+                <View style={styles.defectStatsGrid}>
+                  {statusEntries.length === 0 ? (
+                    <Text style={styles.noStatusText}>No status data available</Text>
+                  ) : (
+                    statusEntries.map(([status, value], idx) => (
+                      <View key={idx} style={styles.statItem}>
+                        <View
+                          style={[
+                            styles.dot,
+                            {
+                              backgroundColor:
+                                STATUS_COLORS[status.toLowerCase()] || '#3b82f6',
+                            },
+                          ]}
+                        />
+                        <Text
+                          style={styles.statText}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {status.toUpperCase()}
+                        </Text>
+                        <Text style={styles.statValue}>{value}</Text>
+                      </View>
+                    ))
+                  )}
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    styles.viewChartButton,
+                    { backgroundColor: color + '20', borderColor: color },
+                  ]}
+                  onPress={() => handleViewChart(key)}
+                >
+                  <Text style={[styles.viewChartText, { color }]}>
+                    View Chart
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </ScrollView>
+
+        {currentScrollX < contentWidth - SCREEN_WIDTH + 8 && (
+          <TouchableOpacity
+            style={[styles.arrowButton, styles.rightArrow]}
+            activeOpacity={0.85}
+            onPress={scrollRight}
+          >
+            <Ionicons name="chevron-forward" size={20} color="#4b5563" />
+          </TouchableOpacity>
+        )}
       </View>
+
+
 
       <Modal
         animationType="slide"
@@ -303,11 +400,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
   },
+  carouselContainer: {
+    position: 'relative',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  arrowButton: {
+    position: 'absolute',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.82)', // Translucent glassmorphism so text underneath is fully visible!
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+    borderWidth: 1.5,
+    borderColor: 'rgba(219, 234, 254, 0.9)', // Light blue translucent outline
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    top: '38%',
+  },
+  leftArrow: {
+    left: 2,
+  },
+  rightArrow: {
+    right: 2,
+  },
   defectCardsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 12,
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
   defectCard: {
     flex: 1,
@@ -324,6 +448,7 @@ const styles = StyleSheet.create({
     minHeight: 160,
     maxWidth: getCardWidth(),
   },
+
   cardHeader: {
     alignItems: 'center',
     marginBottom: 12,
@@ -413,30 +538,6 @@ const styles = StyleSheet.create({
   },
   pieChartContainer: {
     alignItems: 'center',
-
-  },
-  pieChart: {
-    width: 200,
-    height: 200,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 30,
-    position: 'relative',
-  },
-  pieCircle: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    position: 'relative',
-    backgroundColor: '#f8f9fa',
-  },
-  svgContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
-  svgPie: {
-    position: 'absolute',
   },
   chartLegend: {
     width: '100%',
