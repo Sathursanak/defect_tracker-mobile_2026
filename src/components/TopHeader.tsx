@@ -9,6 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import LogoutButton from './LogoutButton';
 
 interface TopHeaderProps {
   title?: string;
@@ -16,6 +17,8 @@ interface TopHeaderProps {
   backgroundColor?: string;
   titleColor?: string;
   iconColor?: string;
+  onBackPress?: () => void;
+  showLogout?: boolean;
   rightActionIcon?: string;
   rightActionColor?: string;
   onRightActionPress?: () => void;
@@ -26,6 +29,8 @@ const TopHeader: React.FC<TopHeaderProps> = ({
   style,
   backgroundColor = '#ffffff',
   titleColor = '#3b82f6',
+  onBackPress,
+  showLogout,
   rightActionIcon,
   rightActionColor = '#3b82f6',
   onRightActionPress,
@@ -41,6 +46,11 @@ const TopHeader: React.FC<TopHeaderProps> = ({
         <View style={styles.content}>
           {/* Center - App icon and title */}
           <View style={styles.centerSection}>
+            {onBackPress && (
+              <TouchableOpacity onPress={onBackPress} style={styles.headerBackButton}>
+                <Ionicons name="arrow-back-outline" size={28} color="#3b82f6" />
+              </TouchableOpacity>
+            )}
             <View
               style={[styles.appIconContainer, { backgroundColor: '#3b82f6' }]}
             >
@@ -50,7 +60,12 @@ const TopHeader: React.FC<TopHeaderProps> = ({
               <Text style={[styles.title, { color: titleColor }]}>{title}</Text>
             )}
           </View>
-          {rightActionIcon && onRightActionPress ? (
+          {showLogout ? (
+            <LogoutButton
+              style={styles.rightAction}
+              iconColor={rightActionColor}
+            />
+          ) : rightActionIcon && onRightActionPress ? (
             <TouchableOpacity
               style={styles.rightAction}
               onPress={onRightActionPress}
@@ -107,6 +122,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: 40,
     width: 40,
+  },
+  headerBackButton: {
+    marginRight: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   appIconContainer: {
     marginRight: 12,

@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
-  Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -15,7 +14,6 @@ import ProjectCard from '../components/ProjectCard';
 import TopHeader from '../components/TopHeader';
 import Footer from '../components/Footer';
 import { mockProjects } from '../data/mockData';
-import { useAuth } from '../context/AuthContext';
 
 const PROJECTS: { name: string; risk: RiskLevel }[] = mockProjects.map(
   project => ({
@@ -65,30 +63,7 @@ const getProjectIcon = (risk: RiskLevel) => {
 
 const Dashboard = () => {
   const navigation = useNavigation();
-  const { logout } = useAuth();
   const [selectedFilter, setSelectedFilter] = useState('all');
-
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: () => {
-            logout();
-            (navigation as any).reset({
-              index: 0,
-              routes: [{ name: 'Welcome' }],
-            });
-          },
-        },
-      ],
-      { cancelable: true },
-    );
-  };
 
   // Calculate dynamic counts for each risk level
   const projectCounts = {
@@ -155,9 +130,7 @@ const Dashboard = () => {
     <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
       <TopHeader
         title="Dashboard Overview"
-        rightActionIcon="log-out-outline"
-        rightActionColor="#3b82f6"
-        onRightActionPress={handleLogout}
+        showLogout={true}
       />
       <ScrollView
         style={{ flex: 1 }}
