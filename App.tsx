@@ -6,6 +6,7 @@ import LoginPage from './src/pages/LoginPage';
 import ForgotPasswordPage from './src/pages/ForgotPasswordPage';
 import Dashboard from './src/pages/Dashboard';
 import ProjectDetails from './src/pages/ProjectDetails';
+import Defects from './src/pages/Defects';
 import { AuthProvider } from './src/context/AuthContext';
 
 const Stack = createNativeStackNavigator();
@@ -23,6 +24,7 @@ export default function App() {
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordPage} />
         <Stack.Screen name="Dashboard" component={Dashboard} />
         <Stack.Screen name="ProjectDetails" component={ProjectDetails} />
+        <Stack.Screen name="Defects" component={Defects} />
       </Stack.Navigator>
     </NavigationContainer>
     </AuthProvider>

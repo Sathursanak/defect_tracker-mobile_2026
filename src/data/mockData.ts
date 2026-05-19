@@ -29,6 +29,23 @@ export interface ProjectData {
   };
 }
 
+export interface DefectRecord {
+  id: string;
+  project: string;
+  briefDescription: string;
+  steps: string;
+  attachment?: string;
+  module: string;
+  submodule: string;
+  type: string;
+  severity: 'High' | 'Medium' | 'Low';
+  priority: 'Critical' | 'High' | 'Medium' | 'Low';
+  status: 'New' | 'Open' | 'In Progress' | 'Fixed' | 'Closed' | 'Duplicate' | 'Rejected';
+  assignedTo: string;
+  enteredBy: string;
+  release: string;
+}
+
 // Mock notifications
 export const mockNotifications: Notification[] = [
   {
@@ -122,9 +139,93 @@ export const mockProjects: ProjectData[] = [
   },
 ];
 
+export const mockDefects: DefectRecord[] = [
+  {
+    id: 'DT-001',
+    project: 'Defect Tracker',
+    briefDescription: 'Login fails with valid credentials on slow network',
+    steps: 'Enter valid user details, tap login, wait for response',
+    module: 'Authentication',
+    submodule: 'Login',
+    type: 'Functionality',
+    severity: 'High',
+    priority: 'Critical',
+    status: 'Open',
+    assignedTo: 'Alice',
+    enteredBy: 'Bob',
+    release: 'Release 1.0',
+  },
+  {
+    id: 'DT-002',
+    project: 'Defect Tracker',
+    briefDescription: 'Dashboard chart labels overlap on small screens',
+    steps: 'Open dashboard on smaller device, inspect chart labels',
+    module: 'Dashboard',
+    submodule: 'Charts',
+    type: 'UI',
+    severity: 'Medium',
+    priority: 'High',
+    status: 'In Progress',
+    assignedTo: 'Charlie',
+    enteredBy: 'Diana',
+    release: 'Release 1.0',
+  },
+  {
+    id: 'DT-003',
+    project: 'QA testing',
+    briefDescription: 'Test case import fails when file has special characters',
+    steps: 'Import Excel file with special characters in test case name',
+    module: 'Test Cases',
+    submodule: 'Import',
+    type: 'Validation',
+    severity: 'Low',
+    priority: 'Medium',
+    status: 'New',
+    assignedTo: 'Eve',
+    enteredBy: 'Frank',
+    release: 'Release 1.1',
+  },
+  {
+    id: 'DT-004',
+    project: 'API Integration',
+    briefDescription: 'API timeout not handled in defect creation flow',
+    steps: 'Create defect and wait for backend timeout',
+    module: 'API',
+    submodule: 'Defect Create',
+    type: 'Functionality',
+    severity: 'High',
+    priority: 'Critical',
+    status: 'Open',
+    assignedTo: 'Grace',
+    enteredBy: 'Heidi',
+    release: 'Release 1.2',
+  },
+  {
+    id: 'DT-005',
+    project: 'Database Migration',
+    briefDescription: 'Release dropdown resets after selecting module filter',
+    steps: 'Select module filter, then release dropdown value resets unexpectedly',
+    module: 'Releases',
+    submodule: 'Filters',
+    type: 'Usability',
+    severity: 'Medium',
+    priority: 'Low',
+    status: 'Fixed',
+    assignedTo: 'Ivan',
+    enteredBy: 'Judy',
+    release: 'Release 2.0',
+  },
+];
+
 // Helper functions
 export const getProjectData = (projectName: string): ProjectData | undefined => {
   return mockProjects.find(project => project.name === projectName);
+};
+
+export const getDefectsForProject = (
+  projectName: string,
+): DefectRecord[] => {
+  return mockDefects.filter(defect => defect.project === projectName);
 };
 
 export const getUnreadNotificationCount = (): number => {

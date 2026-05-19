@@ -15,21 +15,27 @@ interface FooterProps {
   style?: ViewStyle;
 }
 
+type FooterTab = 'home' | 'defects' | 'profile' | '';
+
 const Footer: React.FC<FooterProps> = ({ style }) => {
   const navigation = useNavigation();
   const route = useRoute();
-  const [activeTab, setActiveTab] = useState<'home' | ''>('');
+  const [activeTab, setActiveTab] = useState<FooterTab>('');
 
   // Update active tab based on current route
   useEffect(() => {
     if (route.name === 'Dashboard') {
       setActiveTab('home');
+    } else if (route.name === 'Defects') {
+      setActiveTab('defects');
+    } else if (route.name === 'ProjectDetails') {
+      setActiveTab('');
     } else {
       setActiveTab('');
     }
   }, [route.name]);
 
-  const handleTabPress = (tabName: string, onPress?: () => void) => {
+  const handleTabPress = (tabName: FooterTab, onPress?: () => void) => {
     setActiveTab(tabName);
 
     // Execute navigation immediately for better responsiveness
@@ -41,6 +47,12 @@ const Footer: React.FC<FooterProps> = ({ style }) => {
   const handleHomePress = () => {
     handleTabPress('home', () => {
       (navigation as any).navigate('Dashboard');
+    });
+  };
+
+  const handleDefectsPress = () => {
+    handleTabPress('defects', () => {
+      (navigation as any).navigate('Defects');
     });
   };
 
@@ -59,15 +71,18 @@ const Footer: React.FC<FooterProps> = ({ style }) => {
         <Text style={styles.iconLabel}>Home</Text>
       </TouchableOpacity>
 
-      {/* <View
-        style={[
-          styles.iconButton,
-          activeTab === 'notifications' && styles.activeButton,
-        ]}
+      <TouchableOpacity
+        style={[styles.iconButton, activeTab === 'defects' && styles.activeButton]}
+        onPress={handleDefectsPress}
+        activeOpacity={0.6}
       >
-        <NotificationBell iconColor="#ffffff" />
-        <Text style={styles.iconLabel}>Notifications</Text>
-      </View> */}
+        <Ionicons
+          name={activeTab === 'defects' ? 'bug' : 'bug-outline'}
+          size={24}
+          color="#ffffff"
+        />
+        <Text style={styles.iconLabel}>Defects</Text>
+      </TouchableOpacity>
 
       <View
         style={[

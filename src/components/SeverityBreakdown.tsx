@@ -10,23 +10,8 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import PieChart from 'react-native-pie-chart';
 
-interface DefectData {
-  total: number;
-  reopen: number;
-  closed: number;
-  new: number;
-  reject: number;
-  open: number;
-  duplicate: number;
-  fixed: number;
-}
-
 interface SeverityBreakdownProps {
-  defectData: {
-    high: DefectData;
-    medium: DefectData;
-    low: DefectData;
-  };
+  defectData: Record<string, Record<string, number>>;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -39,31 +24,69 @@ const getCardWidth = () => {
 };
 
 const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
-  defectData,
+  defectData = {},
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedSeverity, setSelectedSeverity] = useState<
-    'high' | 'medium' | 'low'
-  >('high');
+  const [selectedSeverity, setSelectedSeverity] = useState<string>('');
 
-  const handleViewChart = (severity: 'high' | 'medium' | 'low') => {
+  const STATUS_COLORS: Record<string, string> = {
+    new: '#3b82f6',
+    open: '#f59e0b',
+    'in progress': '#8b5cf6',
+    reopen: '#ef4444',
+    reopened: '#ef4444',
+    fixed: '#22c55e',
+    closed: '#16a34a',
+    duplicate: '#6b7280',
+    reject: '#7f1d1d',
+    rejected: '#7f1d1d',
+    hold: '#f97316',
+    ne: '#111827',
+  };
+
+  const handleViewChart = (severity: string) => {
     setSelectedSeverity(severity);
     setModalVisible(true);
   };
 
-  const renderPieChart = (data: DefectData) => {
-    const total = data.total;
-    const segments = [
-      { value: data.new, color: '#3b82f6', label: 'NEW' },
-      { value: data.fixed, color: '#22c55e', label: 'FIXED' },
-      { value: data.closed, color: '#16a34a', label: 'CLOSED' },
-      { value: data.open, color: '#eab308', label: 'OPEN' },
-      { value: data.reopen, color: '#ef4444', label: 'REOPEN' },
-      { value: data.reject, color: '#7f1d1d', label: 'REJECT' },
-      { value: data.duplicate, color: '#6b7280', label: 'DUPLICATE' },
-    ].filter(segment => segment.value > 0);
+  const renderPieChart = (data: Record<string, number>) => {
+    const entries = Object.entries(data).filter(
+      ([key]) => key.toLowerCase() !== 'total',
+    );
+    const total = data.total ?? entries.reduce((sum, [, value]) => sum + value, 0);
 
-    // Prepare data for PieChart component
+    const statusOrder = [
+      'new',
+      'open',
+      'in progress',
+      'reopen',
+      'reopened',
+      'fixed',
+      'closed',
+      'duplicate',
+      'reject',
+      'rejected',
+      'hold',
+      'ne',
+    ];
+
+    const segments = entries
+      .map(([status, value]) => ({
+        value,
+        color: STATUS_COLORS[status.toLowerCase()] || '#60a5fa',
+        label: status.toUpperCase(),
+        key: status,
+      }))
+      .filter(segment => segment.value > 0)
+      .sort((a, b) => {
+        const aIndex = statusOrder.indexOf(a.key.toLowerCase());
+        const bIndex = statusOrder.indexOf(b.key.toLowerCase());
+        return (
+          (aIndex === -1 ? statusOrder.length : aIndex) -
+          (bIndex === -1 ? statusOrder.length : bIndex)
+        );
+      });
+
     const widthAndHeight = 200;
     const series = segments.map(segment => ({
       value: segment.value,
@@ -77,7 +100,6 @@ const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
           <Text style={styles.totalValue}>{total}</Text>
         </View>
 
-        {/* Actual Pie Chart */}
         {total > 0 && (
           <View style={styles.pieChartWrapper}>
             <PieChart
@@ -88,7 +110,6 @@ const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
           </View>
         )}
 
-        {/* Legend */}
         <View style={styles.chartLegend}>
           {segments.map((segment, index) => (
             <View key={index} style={styles.legendRow}>
@@ -111,11 +132,20 @@ const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
     );
   };
 
-  const severityConfig = [
-    { key: 'high', title: 'High Severity', color: '#c62828' },
-    { key: 'medium', title: 'Medium Severity', color: '#f9a825' },
-    { key: 'low', title: 'Low Severity', color: '#2ecc40' },
-  ];
+  const severityConfig = Object.keys(defectData)
+    .filter(key => key.toLowerCase() !== 'total')
+    .map(key => ({
+      key,
+      title: `${key.charAt(0).toUpperCase()}${key.slice(1)} Severity`,
+      color:
+        key.toLowerCase() === 'high'
+          ? '#c62828'
+          : key.toLowerCase() === 'medium'
+          ? '#f9a825'
+          : key.toLowerCase() === 'low'
+          ? '#2ecc40'
+          : '#60a5fa',
+    }));
 
   return (
     <View>
@@ -123,7 +153,16 @@ const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
 
       <View style={styles.defectCardsContainer}>
         {severityConfig.map(({ key, title, color }) => {
-          const data = defectData[key as keyof typeof defectData];
+          const data = defectData[key];
+          const statusEntries = data
+            ? Object.entries(data).filter(
+                ([status]) => status.toLowerCase() !== 'total',
+              )
+            : [];
+          const total = data
+            ? data.total ?? statusEntries.reduce((sum, [, value]) => sum + value, 0)
+            : 0;
+
           return (
             <View
               key={key}
@@ -137,54 +176,35 @@ const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
                 >
                   {title}
                 </Text>
-                <Text style={styles.defectTotal}>{data.total}</Text>
+                <Text style={styles.defectTotal}>{total}</Text>
               </View>
 
               <View style={styles.defectStatsGrid}>
-                <View style={styles.statItem}>
-                  <View style={[styles.dot, { backgroundColor: '#c62828' }]} />
-                  <Text
-                    style={styles.statText}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    REOPEN
-                  </Text>
-                  <Text style={styles.statValue}>{data.reopen}</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <View style={[styles.dot, { backgroundColor: '#2ecc40' }]} />
-                  <Text
-                    style={styles.statText}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    CLOSED
-                  </Text>
-                  <Text style={styles.statValue}>{data.closed}</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <View style={[styles.dot, { backgroundColor: '#f9a825' }]} />
-                  <Text
-                    style={styles.statText}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    NEW
-                  </Text>
-                  <Text style={styles.statValue}>{data.new}</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <View style={[styles.dot, { backgroundColor: '#3b82f6' }]} />
-                  <Text
-                    style={styles.statText}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    FIXED
-                  </Text>
-                  <Text style={styles.statValue}>{data.fixed}</Text>
-                </View>
+                {statusEntries.length === 0 ? (
+                  <Text style={styles.noStatusText}>No status data available</Text>
+                ) : (
+                  statusEntries.map(([status, value], idx) => (
+                    <View key={idx} style={styles.statItem}>
+                      <View
+                        style={[
+                          styles.dot,
+                          {
+                            backgroundColor:
+                              STATUS_COLORS[status.toLowerCase()] || '#60a5fa',
+                          },
+                        ]}
+                      />
+                      <Text
+                        style={styles.statText}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {status.toUpperCase()}
+                      </Text>
+                      <Text style={styles.statValue}>{value}</Text>
+                    </View>
+                  ))
+                )}
               </View>
 
               <TouchableOpacity
@@ -192,9 +212,7 @@ const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
                   styles.viewChartButton,
                   { backgroundColor: color + '20', borderColor: color },
                 ]}
-                onPress={() =>
-                  handleViewChart(key as 'high' | 'medium' | 'low')
-                }
+                onPress={() => handleViewChart(key)}
               >
                 <Text style={[styles.viewChartText, { color }]}>
                   View Chart
@@ -215,14 +233,19 @@ const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {severityConfig.find(s => s.key === selectedSeverity)?.title}{' '}
-                Chart
+                {severityConfig.find(s => s.key === selectedSeverity)?.title || 'Severity'} Chart
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color="#6b7280" />
               </TouchableOpacity>
             </View>
-            {renderPieChart(defectData[selectedSeverity])}
+            {defectData[selectedSeverity] ? (
+              renderPieChart(defectData[selectedSeverity])
+            ) : (
+              <Text style={styles.noStatusText}>
+                No chart data available for this category.
+              </Text>
+            )}
           </View>
         </View>
       </Modal>
@@ -241,8 +264,8 @@ const styles = StyleSheet.create({
   defectCardsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 12,
-    gap: 8,
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
   },
   defectCard: {
     flex: 1,
@@ -250,6 +273,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     borderTopWidth: 3,
+    marginBottom: 12,
+    marginRight: 8,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -410,6 +435,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     borderRadius: 12,
     marginHorizontal: 20,
+  },
+  noStatusText: {
+    color: '#6b7280',
+    fontSize: 12,
+    textAlign: 'center',
+    paddingVertical: 16,
   },
   totalLabel: {
     fontSize: 16,

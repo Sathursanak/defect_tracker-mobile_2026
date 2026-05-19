@@ -1,27 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import TopHeader from '../components/TopHeader';
-import BackButton from '../components/BackButton';
 import Footer from '../components/Footer';
 import ProjectSelector from '../components/ProjectSelector';
 import SeverityBreakdown from '../components/SeverityBreakdown';
-// import DefectIndicators from './DefectIndicators';
+import DefectIndicators from './DefectIndicators';
 import { mockProjects, getProjectData } from '../data/mockData';
-
-type RootStackParamList = {
-  ProjectDetails: {
-    projectName: string;
-    risk: string;
-  };
-};
-
-type ProjectDetailsRouteProp = RouteProp<RootStackParamList, 'ProjectDetails'>;
 
 const ProjectDetails = () => {
   const navigation = useNavigation();
-  const route = useRoute<ProjectDetailsRouteProp>();
-  const { projectName: initialProject } = route.params;
+  const route = useRoute<RouteProp<Record<string, object | undefined>, string>>();
+  const initialProject =
+    (route.params as { projectName?: string } | undefined)?.projectName ||
+    mockProjects[0].name;
   const scrollViewRef = React.useRef<ScrollView>(null);
   const projectSelectorRef = React.useRef<ScrollView>(null);
 
@@ -111,9 +103,22 @@ const ProjectDetails = () => {
         </View>
 
         <View style={styles.projectHeader}>
-          <Text style={styles.projectTitle} numberOfLines={2} ellipsizeMode="tail">
-            {selectedProject}
-          </Text>
+          <View style={styles.projectTitleWrapper}>
+            <Text style={styles.projectTitle} numberOfLines={2} ellipsizeMode="tail">
+              {selectedProject}
+            </Text>
+            <TouchableOpacity
+              style={styles.projectDefectsButton}
+              activeOpacity={0.8}
+              onPress={() =>
+                (navigation as any).navigate('Defects', {
+                  projectName: selectedProject,
+                })
+              }
+            >
+              <Text style={styles.projectDefectsButtonText}>View Defects</Text>
+            </TouchableOpacity>
+          </View>
           <View
             style={[
               styles.statusBadge,
@@ -139,9 +144,9 @@ const ProjectDetails = () => {
 
         <SeverityBreakdown defectData={defectData} />
 
-        {/* <View style={styles.indicatorsContainer}>
+        <View style={styles.indicatorsContainer}>
           <DefectIndicators defectData={defectData} />
-        </View> */}
+        </View>
       </ScrollView>
       <Footer />
     </View>
@@ -205,6 +210,23 @@ const styles = StyleSheet.create({
     flex: 1,
     flexShrink: 1,
     marginRight: 12,
+  },
+  projectTitleWrapper: {
+    flex: 1,
+    marginRight: 12,
+  },
+  projectDefectsButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 10,
+    alignSelf: 'flex-start',
+  },
+  projectDefectsButtonText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 13,
   },
   statusBadge: {
     paddingHorizontal: 12,

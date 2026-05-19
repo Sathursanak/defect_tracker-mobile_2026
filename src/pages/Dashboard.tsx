@@ -147,6 +147,16 @@ const Dashboard = () => {
           ))}
         </View>
 
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={styles.defectsButton}
+            onPress={() => (navigation as any).navigate('Defects')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.defectsButtonText}>View Defects</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.projectsSection}>
           <View style={styles.filtersRow}>
             {FILTERS.map(filter => (
@@ -318,6 +328,26 @@ const styles = StyleSheet.create({
   filterButtonTextActive: {
     color: '#60A5FA',
     fontWeight: 'bold',
+  },
+  actionsRow: {
+    marginHorizontal: 12,
+    marginBottom: 16,
+    alignItems: 'flex-start',
+  },
+  defectsButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  defectsButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   projectsRowScroll: {
     flexDirection: 'row',
