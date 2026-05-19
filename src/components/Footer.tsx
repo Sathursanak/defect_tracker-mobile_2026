@@ -8,7 +8,6 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import NotificationBell from './NotificationBell';
 import Profile from './Profile';
 
 interface FooterProps {
@@ -103,7 +102,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#60A5FA', // Theme color
+    backgroundColor: '#3b82f6', // Theme color
     paddingHorizontal: 16,
     paddingVertical: 12,
     paddingBottom: 20,

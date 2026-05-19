@@ -20,7 +20,7 @@ const BackButton: React.FC<BackButtonProps> = ({
   onPress,
   style = {},
   textStyle = {},
-  iconColor = '#60A5FA',
+  iconColor = '#3b82f6',
   text = 'Back',
 }) => (
   <TouchableOpacity style={[styles.backButton, style]} onPress={onPress}>
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backText: {
-    color: '#60A5FA',
+    color: '#3b82f6',
     fontSize: 18,
     marginLeft: 4,
     fontWeight: 'bold',

@@ -26,7 +26,7 @@ interface NotificationBellProps {
 }
 
 const NotificationBell: React.FC<NotificationBellProps> = ({
-  iconColor = '#60A5FA',
+  iconColor = '#3b82f6',
   onPress,
 }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);

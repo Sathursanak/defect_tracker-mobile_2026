@@ -19,7 +19,7 @@ interface ProfileProps {
   iconColor?: string;
 }
 
-const Profile: React.FC<ProfileProps> = ({ iconColor = '#60A5FA' }) => {
+const Profile: React.FC<ProfileProps> = ({ iconColor = '#3b82f6' }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const navigation = useNavigation();
   const { user, logout } = useAuth();
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#60A5FA',
+    backgroundColor: '#3b82f6',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#60A5FA',
+    color: '#3b82f6',
     marginBottom: 4,
   },
   statLabel: {

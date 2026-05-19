@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   },
   statusCardLabel: {
     fontSize: 13,
-    color: '#60A5FA',
+    color: '#3b82f6',
     fontWeight: 'bold',
     marginBottom: 1,
     textAlign: 'center',

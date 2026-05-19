@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   activeProjectTab: {
-    backgroundColor: '#60A5FA',
+    backgroundColor: '#3b82f6',
   },
   projectTabText: {
     fontSize: 14,

@@ -200,7 +200,7 @@ const Dashboard = () => {
                   key={project.name + idx}
                   name={project.name}
                   risk={project.risk}
-                  riskColor={RISK_COLORS[project.risk] || '#60A5FA'}
+                  riskColor={RISK_COLORS[project.risk] || '#3b82f6'}
                   riskLabel={RISK_LABELS[project.risk]}
                   icon={getProjectIcon(project.risk)}
                   size={PROJECT_CARD_SIZE}
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#60A5FA',
+    color: '#3b82f6',
     marginBottom: 4,
     textAlign: 'center',
     marginTop: 8,
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   },
   statusCardLabel: {
     fontSize: 15,
-    color: '#60A5FA',
+    color: '#3b82f6',
     fontWeight: 'bold',
     marginTop: 8,
     textAlign: 'center',
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#60A5FA',
+    color: '#3b82f6',
     marginBottom: 12,
     marginLeft: 4,
   },
@@ -323,10 +323,10 @@ const styles = StyleSheet.create({
   filterButtonText: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#60A5FA',
+    color: '#3b82f6',
   },
   filterButtonTextActive: {
-    color: '#60A5FA',
+    color: '#3b82f6',
     fontWeight: 'bold',
   },
   actionsRow: {
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   defectsButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#3b82f6',
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   projectName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#60A5FA',
+    color: '#3b82f6',
     marginTop: 8,
     marginBottom: 4,
     textAlign: 'center',

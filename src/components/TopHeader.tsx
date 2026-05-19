@@ -22,7 +22,7 @@ const TopHeader: React.FC<TopHeaderProps> = ({
   title,
   style,
   backgroundColor = '#ffffff',
-  titleColor = '#60A5FA',
+  titleColor = '#3b82f6',
 }) => {
   return (
     <>
@@ -36,7 +36,7 @@ const TopHeader: React.FC<TopHeaderProps> = ({
           {/* Center - App icon and title */}
           <View style={styles.centerSection}>
             <View
-              style={[styles.appIconContainer, { backgroundColor: '#60A5FA' }]}
+              style={[styles.appIconContainer, { backgroundColor: '#3b82f6' }]}
             >
               <Ionicons name="bug-outline" size={28} color="#ffffff" />
             </View>

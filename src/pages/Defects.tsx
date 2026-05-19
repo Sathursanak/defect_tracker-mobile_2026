@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   viewAllButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#3b82f6',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   filterChipActive: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#3b82f6',
   },
   filterText: {
     color: '#374151',

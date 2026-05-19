@@ -10,7 +10,7 @@ interface RoundIconProps {
 
 const RoundIcon: React.FC<RoundIconProps> = ({
   size = 96,
-  backgroundColor = '#60A5FA',
+  backgroundColor = '#3b82f6',
   children,
   style = {},
 }) => (

@@ -73,7 +73,7 @@ const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
     const segments = entries
       .map(([status, value]) => ({
         value,
-        color: STATUS_COLORS[status.toLowerCase()] || '#60a5fa',
+        color: STATUS_COLORS[status.toLowerCase()] || '#3b82f6',
         label: status.toUpperCase(),
         key: status,
       }))
@@ -144,7 +144,7 @@ const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
           ? '#f9a825'
           : key.toLowerCase() === 'low'
           ? '#2ecc40'
-          : '#60a5fa',
+          : '#3b82f6',
     }));
 
   return (
@@ -190,7 +190,7 @@ const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
                           styles.dot,
                           {
                             backgroundColor:
-                              STATUS_COLORS[status.toLowerCase()] || '#60a5fa',
+                              STATUS_COLORS[status.toLowerCase()] || '#3b82f6',
                           },
                         ]}
                       />
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   },
   defectTotal: {
     fontSize: 20,
-    color: '#60A5FA',
+    color: '#3b82f6',
     fontWeight: 'bold',
   },
   defectStatsGrid: {
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 11,
-    color: '#60A5FA',
+    color: '#3b82f6',
     fontWeight: 'bold',
     minWidth: 20,
     textAlign: 'right',
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#60A5FA',
+    color: '#3b82f6',
   },
   pieChartContainer: {
     alignItems: 'center',
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
   },
   totalValue: {
     fontSize: 32,
-    color: '#60A5FA',
+    color: '#3b82f6',
     fontWeight: 'bold',
   },
   pieChartWrapper: {

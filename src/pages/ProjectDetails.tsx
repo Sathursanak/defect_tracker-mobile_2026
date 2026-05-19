@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   projectTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#60A5FA',
+    color: '#3b82f6',
     flex: 1,
     flexShrink: 1,
     marginRight: 12,
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   projectDefectsButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#3b82f6',
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 10,
