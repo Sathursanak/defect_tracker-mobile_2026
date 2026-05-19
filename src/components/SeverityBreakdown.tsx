@@ -29,6 +29,27 @@ const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSeverity, setSelectedSeverity] = useState<string>('');
 
+  const countRemarks = (data: Record<string, Record<string, number>>) =>
+    Object.values(data).reduce((severitySum, severityData) => {
+      return Object.entries(severityData).reduce((statusSum, [status, value]) => {
+        return status.toLowerCase() === 'total' ? statusSum : statusSum + value;
+      }, severitySum);
+    }, 0);
+
+  const countDuplicateReject = (data: Record<string, Record<string, number>>) =>
+    Object.values(data).reduce((sum, severityData) => {
+      return (
+        sum +
+        (severityData.duplicate ?? 0) +
+        (severityData.reject ?? 0) +
+        (severityData.rejected ?? 0)
+      );
+    }, 0);
+
+  const totalRemarks = countRemarks(defectData);
+  const duplicateRejectCount = countDuplicateReject(defectData);
+  const totalDefects = Math.max(totalRemarks - duplicateRejectCount, 0);
+
   const STATUS_COLORS: Record<string, string> = {
     new: '#3b82f6',
     open: '#f59e0b',
@@ -150,6 +171,27 @@ const SeverityBreakdown: React.FC<SeverityBreakdownProps> = ({
   return (
     <View>
       <Text style={styles.sectionTitle}>Defect Severity Breakdown</Text>
+
+      <View style={styles.summaryRow}>
+        <View style={[styles.summaryBadge, styles.remarkBadge]}>
+          <View style={styles.summaryHeader}>
+            <View style={[styles.summaryPill, styles.remarkPill]}>
+              <Ionicons name="reader-outline" size={20} color="#2563eb" />
+            </View>
+            <Text style={styles.summaryLabel}>Total Remarks</Text>
+          </View>
+          <Text style={styles.summaryValue}>{totalRemarks}</Text>
+        </View>
+        <View style={[styles.summaryBadge, styles.defectBadge]}>
+          <View style={styles.summaryHeader}>
+            <View style={[styles.summaryPill, styles.defectPill]}>
+              <Ionicons name="bug-outline" size={20} color="#b91c1c" />
+            </View>
+            <Text style={styles.summaryLabel}>Total Defects</Text>
+          </View>
+          <Text style={styles.summaryValue}>{totalDefects}</Text>
+        </View>
+      </View>
 
       <View style={styles.defectCardsContainer}>
         {severityConfig.map(({ key, title, color }) => {
@@ -455,6 +497,66 @@ const styles = StyleSheet.create({
   },
   pieChartWrapper: {
     alignItems: 'center',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+  summaryBadge: {
+    flex: 0.48,
+    minHeight: 56,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    marginHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  remarkBadge: {
+    borderLeftWidth: 4,
+    borderColor: '#3b82f6',
+  },
+  defectBadge: {
+    borderLeftWidth: 4,
+    borderColor: '#ef4444',
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 6,
+  },
+  summaryPill: {
+    width: 26,
+    height: 26,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  remarkPill: {
+    backgroundColor: '#dbeafe',
+  },
+  defectPill: {
+    backgroundColor: '#fee2e2',
+  },
+  summaryLabel: {
+    fontSize: 13,
+    color: '#475569',
+    fontWeight: '700',
+    flex: 1,
+  },
+  summaryValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#111827',
+    textAlign: 'center',
+    width: '100%',
   },
 });
 
