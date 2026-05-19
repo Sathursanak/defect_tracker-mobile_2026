@@ -8,13 +8,12 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import Profile from './Profile';
 
 interface FooterProps {
   style?: ViewStyle;
 }
 
-type FooterTab = 'home' | 'defects' | 'profile' | '';
+type FooterTab = 'home' | 'defects' | '';
 
 const Footer: React.FC<FooterProps> = ({ style }) => {
   const navigation = useNavigation();
@@ -70,28 +69,21 @@ const Footer: React.FC<FooterProps> = ({ style }) => {
         <Text style={styles.iconLabel}>Home</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.iconButton, activeTab === 'defects' && styles.activeButton]}
-        onPress={handleDefectsPress}
-        activeOpacity={0.6}
-      >
-        <Ionicons
-          name={activeTab === 'defects' ? 'bug' : 'bug-outline'}
-          size={24}
-          color="#ffffff"
-        />
-        <Text style={styles.iconLabel}>Defects</Text>
-      </TouchableOpacity>
+      {route.name !== 'Dashboard' && (
+        <TouchableOpacity
+          style={[styles.iconButton, activeTab === 'defects' && styles.activeButton]}
+          onPress={handleDefectsPress}
+          activeOpacity={0.6}
+        >
+          <Ionicons
+            name={activeTab === 'defects' ? 'bug' : 'bug-outline'}
+            size={24}
+            color="#ffffff"
+          />
+          <Text style={styles.iconLabel}>Defects</Text>
+        </TouchableOpacity>
+      )}
 
-      <View
-        style={[
-          styles.iconButton,
-          activeTab === 'profile' && styles.activeButton,
-        ]}
-      >
-        <Profile iconColor="#ffffff" />
-        <Text style={styles.iconLabel}>Profile</Text>
-      </View>
     </View>
   );
 };

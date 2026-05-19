@@ -6,10 +6,12 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import TopHeader from '../components/TopHeader';
 import Footer from '../components/Footer';
+import { useAuth } from '../context/AuthContext';
 import { mockProjects, getDefectsForProject, mockDefects, DefectRecord } from '../data/mockData';
 
 type RootStackParamList = {
@@ -25,6 +27,7 @@ const STATUS_FILTERS = ['All', 'New', 'Open', 'In Progress', 'Fixed', 'Closed', 
 
 const Defects = () => {
   const navigation = useNavigation();
+  const { logout } = useAuth();
   const route = useRoute<DefectsRouteProp>();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState('All');
@@ -32,6 +35,28 @@ const Defects = () => {
   const [selectedProject, setSelectedProject] = useState<string>(
     route.params?.projectName || 'All Projects',
   );
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: () => {
+            logout();
+            (navigation as any).reset({
+              index: 0,
+              routes: [{ name: 'Welcome' }],
+            });
+          },
+        },
+      ],
+      { cancelable: true },
+    );
+  };
 
   const defects: DefectRecord[] = useMemo(() => {
     if (selectedProject && selectedProject !== 'All Projects') {
@@ -60,7 +85,12 @@ const Defects = () => {
 
   return (
     <View style={styles.screen}>
-      <TopHeader title="Defects" />
+      <TopHeader
+        title="Defects"
+        rightActionIcon="log-out-outline"
+        rightActionColor="#3b82f6"
+        onRightActionPress={handleLogout}
+      />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.controlsRow}>
           <View style={styles.searchBox}>

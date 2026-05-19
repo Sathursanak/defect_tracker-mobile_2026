@@ -16,6 +16,9 @@ interface TopHeaderProps {
   backgroundColor?: string;
   titleColor?: string;
   iconColor?: string;
+  rightActionIcon?: string;
+  rightActionColor?: string;
+  onRightActionPress?: () => void;
 }
 
 const TopHeader: React.FC<TopHeaderProps> = ({
@@ -23,6 +26,9 @@ const TopHeader: React.FC<TopHeaderProps> = ({
   style,
   backgroundColor = '#ffffff',
   titleColor = '#3b82f6',
+  rightActionIcon,
+  rightActionColor = '#3b82f6',
+  onRightActionPress,
 }) => {
   return (
     <>
@@ -44,6 +50,19 @@ const TopHeader: React.FC<TopHeaderProps> = ({
               <Text style={[styles.title, { color: titleColor }]}>{title}</Text>
             )}
           </View>
+          {rightActionIcon && onRightActionPress ? (
+            <TouchableOpacity
+              style={styles.rightAction}
+              onPress={onRightActionPress}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={rightActionIcon}
+                size={24}
+                color={rightActionColor}
+              />
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
     </>
@@ -80,6 +99,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 8,
+  },
+  rightAction: {
+    position: 'absolute',
+    right: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 40,
+    width: 40,
   },
   appIconContainer: {
     marginRight: 12,

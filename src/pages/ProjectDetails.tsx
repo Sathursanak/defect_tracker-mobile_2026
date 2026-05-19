@@ -1,16 +1,40 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import TopHeader from '../components/TopHeader';
 import Footer from '../components/Footer';
 import ProjectSelector from '../components/ProjectSelector';
 import SeverityBreakdown from '../components/SeverityBreakdown';
 import DefectIndicators from './DefectIndicators';
+import { useAuth } from '../context/AuthContext';
 import { mockProjects, getProjectData } from '../data/mockData';
 
 const ProjectDetails = () => {
   const navigation = useNavigation();
+  const { logout } = useAuth();
   const route = useRoute<RouteProp<Record<string, object | undefined>, string>>();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: () => {
+            logout();
+            (navigation as any).reset({
+              index: 0,
+              routes: [{ name: 'Welcome' }],
+            });
+          },
+        },
+      ],
+      { cancelable: true },
+    );
+  };
   const initialProject =
     (route.params as { projectName?: string } | undefined)?.projectName ||
     mockProjects[0].name;
@@ -86,7 +110,12 @@ const ProjectDetails = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
-      <TopHeader title={`${selectedProject} Details`} />
+      <TopHeader
+        title={`${selectedProject} Details`}
+        rightActionIcon="log-out-outline"
+        rightActionColor="#3b82f6"
+        onRightActionPress={handleLogout}
+      />
       <ScrollView
         ref={scrollViewRef}
         style={styles.container}
