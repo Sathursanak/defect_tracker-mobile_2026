@@ -9,6 +9,7 @@ import {
   Alert,
   Platform,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -16,7 +17,8 @@ import TopHeader from '../components/TopHeader';
 import Footer from '../components/Footer';
 import ProjectSelector from '../components/ProjectSelector';
 import SeverityBreakdown from '../components/SeverityBreakdown';
-import { mockProjects, getProjectData, mockDefects, DefectRecord } from '../data/mockData';
+import { DefectRecord } from '../data/mockData';
+import * as api from '../services/api';
 
 type RootStackParamList = {
   Defects: {
@@ -26,31 +28,164 @@ type RootStackParamList = {
 
 type DefectsRouteProp = RouteProp<RootStackParamList, 'Defects'>;
 
+const getStatusHistoryPath = (currentStatus: string): string[] => {
+  const status = currentStatus.trim();
+  if (status === 'New') {
+    return ['New'];
+  }
+  if (status === 'Open') {
+    return ['New', 'Open'];
+  }
+  if (status === 'In Progress') {
+    return ['New', 'Open', 'In Progress'];
+  }
+  if (status === 'Fixed') {
+    return ['New', 'Open', 'In Progress', 'Fixed'];
+  }
+  if (status === 'Closed') {
+    return ['New', 'Open', 'In Progress', 'Fixed', 'Closed'];
+  }
+  if (status === 'Duplicate' || status === 'Rejected') {
+    return ['New', 'Open', status];
+  }
+  return ['New', 'Open', status];
+};
+
 const Defects = () => {
   const navigation = useNavigation();
   const route = useRoute<DefectsRouteProp>();
-  
-  const allProjects = mockProjects.map(p => p.name);
-  const [selectedProject, setSelectedProject] = useState<string>(
-    route.params?.projectName || allProjects[0],
-  );
 
-  // In-memory defect data state to allow reassignments to persist dynamically
-  const [allMockDefects, setAllMockDefects] = useState<DefectRecord[]>(mockDefects);
-  const [reassigningDefectId, setReassigningDefectId] = useState<string | null>(null);
+  const [projects, setProjects] = useState<string[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string>('');
+  
+  const [filteredDefects, setFilteredDefects] = useState<DefectRecord[]>([]);
+  const [expandedCardIds, setExpandedCardIds] = useState<string[]>([]);
+  const [activeStatusDropdownId, setActiveStatusDropdownId] = useState<string | null>(null);
+  const [activeAssigneeDropdownId, setActiveAssigneeDropdownId] = useState<string | null>(null);
 
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState('All');
   const [selectedPriority, setSelectedPriority] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
+  const [selectedModule, setSelectedModule] = useState('All');
+  const [selectedSubmodule, setSelectedSubmodule] = useState('All');
+  const [selectedType, setSelectedType] = useState('All');
+  const [selectedRelease, setSelectedRelease] = useState('All');
+  const [selectedAssignedTo, setSelectedAssignedTo] = useState('All');
+  const [selectedEnteredBy, setSelectedEnteredBy] = useState('All');
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(true);
+
+  // API Loading States
+  const [projectsLoading, setProjectsLoading] = useState(true);
+  const [defectsLoading, setDefectsLoading] = useState(true);
+  const [filtersLoading, setFiltersLoading] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Filter lists fetched from API dynamically
+  const [filterOptions, setFilterOptions] = useState<api.FilterOptions>({
+    modules: [],
+    submodules: [],
+    types: [],
+    releases: [],
+    developers: [],
+    enteredBy: [],
+  });
+
+  const [projectDetails, setProjectDetails] = useState<any>(null);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const projectSelectorRef = useRef<ScrollView>(null);
 
   const animY = useRef(new Animated.Value(-4)).current;
   const [showScrollDownButton, setShowScrollDownButton] = useState(true);
+
+  // Initialize projects list
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const names = await api.getProjects();
+        setProjects(names);
+        const initial = route.params?.projectName || names[0] || '';
+        setSelectedProject(initial);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      } finally {
+        setProjectsLoading(false);
+      }
+    };
+    fetchProjects();
+  }, [route.params]);
+
+  // Fetch unique filter options and project risk metadata when project switches
+  useEffect(() => {
+    if (!selectedProject) return;
+    
+    const fetchProjectDetailsAndFilters = async () => {
+      setFiltersLoading(true);
+      try {
+        const details = await api.getProjectDetails(selectedProject);
+        setProjectDetails(details);
+        
+        const options = await api.getFilterOptions(selectedProject);
+        setFilterOptions(options);
+      } catch (error) {
+        console.error('Error fetching details/filters:', error);
+      } finally {
+        setFiltersLoading(false);
+      }
+    };
+    
+    fetchProjectDetailsAndFilters();
+  }, [selectedProject, refreshTrigger]);
+
+  // Fetch filtered defects from API whenever any filter parameter changes (debounced search)
+  useEffect(() => {
+    if (!selectedProject) return;
+
+    const fetchDefects = async () => {
+      setDefectsLoading(true);
+      try {
+        const data = await api.getDefects({
+          project: selectedProject,
+          search: searchTerm,
+          severity: selectedSeverity !== 'All' ? selectedSeverity : undefined,
+          priority: selectedPriority !== 'All' ? selectedPriority : undefined,
+          status: selectedStatus !== 'All' ? selectedStatus : undefined,
+          module: selectedModule !== 'All' ? selectedModule : undefined,
+          submodule: selectedSubmodule !== 'All' ? selectedSubmodule : undefined,
+          type: selectedType !== 'All' ? selectedType : undefined,
+          release: selectedRelease !== 'All' ? selectedRelease : undefined,
+          assignedTo: selectedAssignedTo !== 'All' ? selectedAssignedTo : undefined,
+          enteredBy: selectedEnteredBy !== 'All' ? selectedEnteredBy : undefined,
+        });
+        setFilteredDefects(data);
+      } catch (error) {
+        console.error('Error loading defects:', error);
+      } finally {
+        setDefectsLoading(false);
+      }
+    };
+
+    const delayDebounceFn = setTimeout(() => {
+      fetchDefects();
+    }, 200);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [
+    selectedProject,
+    searchTerm,
+    selectedSeverity,
+    selectedPriority,
+    selectedStatus,
+    selectedModule,
+    selectedSubmodule,
+    selectedType,
+    selectedRelease,
+    selectedAssignedTo,
+    selectedEnteredBy,
+    refreshTrigger,
+  ]);
 
   useEffect(() => {
     const anim = Animated.loop(
@@ -81,7 +216,7 @@ const Defects = () => {
   };
 
   const getOrderedProjects = () => {
-    const ordered = [...allProjects];
+    const ordered = [...projects];
     const selectedIndex = ordered.indexOf(selectedProject);
     if (selectedIndex > 0) {
       const [selected] = ordered.splice(selectedIndex, 1);
@@ -94,48 +229,60 @@ const Defects = () => {
     setSelectedProject(project);
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
     projectSelectorRef.current?.scrollTo({ x: 0, animated: true });
+    
+    // Reset filters for new project to avoid mismatching lookups
+    setSelectedSeverity('All');
+    setSelectedPriority('All');
+    setSelectedStatus('All');
+    setSelectedModule('All');
+    setSelectedSubmodule('All');
+    setSelectedType('All');
+    setSelectedRelease('All');
+    setSelectedAssignedTo('All');
+    setSelectedEnteredBy('All');
   };
 
-  const getDefectData = () => {
-    const projectData = getProjectData(selectedProject);
-    return projectData
-      ? projectData.defectData
-      : {
-          high: { total: 0, reopen: 0, closed: 0, new: 0, reject: 0, open: 0, duplicate: 0, fixed: 0 },
-          medium: { total: 0, reopen: 0, closed: 0, new: 0, reject: 0, open: 0, duplicate: 0, fixed: 0 },
-          low: { total: 0, reopen: 0, closed: 0, new: 0, reject: 0, open: 0, duplicate: 0, fixed: 0 },
-        };
+  const defectData = projectDetails?.defectData || {
+    high: { total: 0, reopen: 0, closed: 0, new: 0, reject: 0, open: 0, duplicate: 0, fixed: 0 },
+    medium: { total: 0, reopen: 0, closed: 0, new: 0, reject: 0, open: 0, duplicate: 0, fixed: 0 },
+    low: { total: 0, reopen: 0, closed: 0, new: 0, reject: 0, open: 0, duplicate: 0, fixed: 0 },
+  };
+  const currentRisk = projectDetails?.risk || 'low';
+
+  // Dynamic filter lists extraction from state
+  const modulesList = useMemo(() => ['All', ...filterOptions.modules], [filterOptions]);
+  const submodulesList = useMemo(() => ['All', ...filterOptions.submodules], [filterOptions]);
+  const typesList = useMemo(() => ['All', ...filterOptions.types], [filterOptions]);
+  const releasesList = useMemo(() => ['All', ...filterOptions.releases], [filterOptions]);
+  const developersList = useMemo(() => ['All', ...filterOptions.developers], [filterOptions]);
+  const enteredByList = useMemo(() => ['All', ...filterOptions.enteredBy], [filterOptions]);
+
+  const handleReassign = async (defectId: string, developer: string) => {
+    try {
+      await api.reassignDefect(defectId, developer);
+      setActiveAssigneeDropdownId(null);
+      Alert.alert('Reassigned', `Defect has been reassigned to ${developer}.`);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to reassign developer.');
+    }
   };
 
-  const defectData = getDefectData();
-  const currentRisk = getProjectData(selectedProject)?.risk || 'low';
+  const handleStatusChange = async (defectId: string, newStatus: DefectRecord['status']) => {
+    try {
+      await api.updateDefectStatus(defectId, newStatus);
+      setActiveStatusDropdownId(null);
+      Alert.alert('Status Updated', `Defect ${defectId} status changed to ${newStatus}.`);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to update status.');
+    }
+  };
 
-  const projectDefects = useMemo(() => {
-    return allMockDefects.filter(defect => defect.project === selectedProject);
-  }, [allMockDefects, selectedProject]);
-
-  const filteredDefects = useMemo(() => {
-    return projectDefects.filter(defect => {
-      const matchesSearch = 
-        defect.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        defect.briefDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        defect.module.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        defect.submodule.toLowerCase().includes(searchTerm.toLowerCase());
-        
-      const matchesSeverity = selectedSeverity === 'All' || defect.severity === selectedSeverity;
-      const matchesPriority = selectedPriority === 'All' || defect.priority === selectedPriority;
-      const matchesStatus = selectedStatus === 'All' || defect.status === selectedStatus;
-      
-      return matchesSearch && matchesSeverity && matchesPriority && matchesStatus;
-    });
-  }, [projectDefects, searchTerm, selectedSeverity, selectedPriority, selectedStatus]);
-
-  const handleReassign = (defectId: string, developer: string) => {
-    setAllMockDefects(prev => 
-      prev.map(d => d.id === defectId ? { ...d, assignedTo: developer } : d)
+  const toggleCardExpansion = (defectId: string) => {
+    setExpandedCardIds(prev =>
+      prev.includes(defectId) ? prev.filter(id => id !== defectId) : [...prev, defectId]
     );
-    setReassigningDefectId(null);
-    Alert.alert('Reassigned', `Defect has been reassigned to ${developer}.`);
   };
 
   const getStatusColors = (status: string) => {
@@ -155,6 +302,24 @@ const Defects = () => {
         return { bg: '#f3f4f6', text: '#1f2937' };
     }
   };
+
+
+  if (projectsLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
+        <TopHeader
+          onBackPress={() => navigation.goBack()}
+          title="Defects"
+          showLogout={true}
+        />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={{ marginTop: 12, color: '#6b7280', fontSize: 15, fontWeight: '600' }}>Loading Projects...</Text>
+        </View>
+        <Footer />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
@@ -205,8 +370,8 @@ const Defects = () => {
         </View>
 
         {/* Severity Breakdown */}
-        <SeverityBreakdown 
-          defectData={defectData} 
+        <SeverityBreakdown
+          defectData={defectData}
         />
 
         {/* Section Title */}
@@ -235,46 +400,151 @@ const Defects = () => {
 
         {/* Filters Collapsible Bar */}
         <View style={styles.filtersContainer}>
-          <TouchableOpacity 
-            style={styles.filtersHeader} 
+          <TouchableOpacity
+            style={styles.filtersHeader}
             activeOpacity={0.8}
             onPress={() => setIsFiltersExpanded(!isFiltersExpanded)}
           >
             <View style={styles.filtersHeaderLeft}>
               <Ionicons name="funnel-outline" size={18} color="#3b82f6" />
               <Text style={styles.filtersHeaderText}>Filters</Text>
-              {(selectedSeverity !== 'All' || selectedPriority !== 'All' || selectedStatus !== 'All') && (
-                <View style={styles.activeFiltersCountBadge}>
-                  <Text style={styles.activeFiltersCountText}>
-                    {[selectedSeverity, selectedPriority, selectedStatus].filter(v => v !== 'All').length}
-                  </Text>
-                </View>
-              )}
+              {(selectedSeverity !== 'All' ||
+                selectedPriority !== 'All' ||
+                selectedStatus !== 'All' ||
+                selectedModule !== 'All' ||
+                selectedSubmodule !== 'All' ||
+                selectedType !== 'All' ||
+                selectedRelease !== 'All' ||
+                selectedAssignedTo !== 'All' ||
+                selectedEnteredBy !== 'All') && (
+                  <View style={styles.activeFiltersCountBadge}>
+                    <Text style={styles.activeFiltersCountText}>
+                      {[
+                        selectedSeverity,
+                        selectedPriority,
+                        selectedStatus,
+                        selectedModule,
+                        selectedSubmodule,
+                        selectedType,
+                        selectedRelease,
+                        selectedAssignedTo,
+                        selectedEnteredBy,
+                      ].filter(v => v !== 'All').length}
+                    </Text>
+                  </View>
+                )}
             </View>
             <View style={styles.filtersHeaderRight}>
-              {(selectedSeverity !== 'All' || selectedPriority !== 'All' || selectedStatus !== 'All') && (
-                <TouchableOpacity 
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    setSelectedSeverity('All');
-                    setSelectedPriority('All');
-                    setSelectedStatus('All');
-                  }}
-                  style={styles.clearAllFiltersBtn}
-                >
-                  <Text style={styles.clearAllFiltersText}>Clear All</Text>
-                </TouchableOpacity>
-              )}
-              <Ionicons 
-                name={isFiltersExpanded ? "chevron-up" : "chevron-down"} 
-                size={18} 
-                color="#6b7280" 
+              {(selectedSeverity !== 'All' ||
+                selectedPriority !== 'All' ||
+                selectedStatus !== 'All' ||
+                selectedModule !== 'All' ||
+                selectedSubmodule !== 'All' ||
+                selectedType !== 'All' ||
+                selectedRelease !== 'All' ||
+                selectedAssignedTo !== 'All' ||
+                selectedEnteredBy !== 'All') && (
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setSelectedSeverity('All');
+                      setSelectedPriority('All');
+                      setSelectedStatus('All');
+                      setSelectedModule('All');
+                      setSelectedSubmodule('All');
+                      setSelectedType('All');
+                      setSelectedRelease('All');
+                      setSelectedAssignedTo('All');
+                      setSelectedEnteredBy('All');
+                    }}
+                    style={styles.clearAllFiltersBtn}
+                  >
+                    <Text style={styles.clearAllFiltersText}>Clear All Filters</Text>
+                  </TouchableOpacity>
+                )}
+              <Ionicons
+                name={isFiltersExpanded ? "chevron-up" : "chevron-down"}
+                size={18}
+                color="#6b7280"
               />
             </View>
           </TouchableOpacity>
 
           {isFiltersExpanded && (
             <View style={styles.filtersBody}>
+              {/* Module filter */}
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupTitle}>Module</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipsRow}>
+                  {modulesList.map(option => (
+                    <TouchableOpacity
+                      key={option}
+                      onPress={() => {
+                        setSelectedModule(option);
+                        setSelectedSubmodule('All'); // Reset submodule when module changes
+                      }}
+                      style={[
+                        styles.filterChip,
+                        selectedModule === option && styles.activeFilterChip,
+                      ]}
+                    >
+                      <Text style={[styles.filterChipText, selectedModule === option && styles.activeFilterChipText]}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Submodule filter */}
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupTitle}>Submodule</Text>
+                {selectedModule === 'All' ? (
+                  <View style={styles.disabledContainer}>
+                    <Ionicons name="lock-closed-outline" size={14} color="#9ca3af" />
+                    <Text style={styles.disabledText}>Select modules first</Text>
+                  </View>
+                ) : (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipsRow}>
+                    {submodulesList.map(option => (
+                      <TouchableOpacity
+                        key={option}
+                        onPress={() => setSelectedSubmodule(option)}
+                        style={[
+                          styles.filterChip,
+                          selectedSubmodule === option && styles.activeFilterChip,
+                        ]}
+                      >
+                        <Text style={[styles.filterChipText, selectedSubmodule === option && styles.activeFilterChipText]}>
+                          {option}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+
+              {/* Type filter */}
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupTitle}>Type</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipsRow}>
+                  {typesList.map(option => (
+                    <TouchableOpacity
+                      key={option}
+                      onPress={() => setSelectedType(option)}
+                      style={[
+                        styles.filterChip,
+                        selectedType === option && styles.activeFilterChip,
+                      ]}
+                    >
+                      <Text style={[styles.filterChipText, selectedType === option && styles.activeFilterChipText]}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
               {/* Severity filter */}
               <View style={styles.filterGroup}>
                 <Text style={styles.filterGroupTitle}>Severity</Text>
@@ -317,6 +587,27 @@ const Defects = () => {
                 </ScrollView>
               </View>
 
+              {/* Release filter */}
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupTitle}>Release</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipsRow}>
+                  {releasesList.map(option => (
+                    <TouchableOpacity
+                      key={option}
+                      onPress={() => setSelectedRelease(option)}
+                      style={[
+                        styles.filterChip,
+                        selectedRelease === option && styles.activeFilterChip,
+                      ]}
+                    >
+                      <Text style={[styles.filterChipText, selectedRelease === option && styles.activeFilterChipText]}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
               {/* Status filter */}
               <View style={styles.filterGroup}>
                 <Text style={styles.filterGroupTitle}>Status</Text>
@@ -337,13 +628,60 @@ const Defects = () => {
                   ))}
                 </ScrollView>
               </View>
+
+              {/* Assigned To filter */}
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupTitle}>Assigned To</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipsRow}>
+                  {developersList.map(option => (
+                    <TouchableOpacity
+                      key={option}
+                      onPress={() => setSelectedAssignedTo(option)}
+                      style={[
+                        styles.filterChip,
+                        selectedAssignedTo === option && styles.activeFilterChip,
+                      ]}
+                    >
+                      <Text style={[styles.filterChipText, selectedAssignedTo === option && styles.activeFilterChipText]}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Entered By filter */}
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupTitle}>Entered By</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipsRow}>
+                  {enteredByList.map(option => (
+                    <TouchableOpacity
+                      key={option}
+                      onPress={() => setSelectedEnteredBy(option)}
+                      style={[
+                        styles.filterChip,
+                        selectedEnteredBy === option && styles.activeFilterChip,
+                      ]}
+                    >
+                      <Text style={[styles.filterChipText, selectedEnteredBy === option && styles.activeFilterChipText]}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
             </View>
           )}
         </View>
 
         {/* Defects List Cards */}
         <View style={styles.defectsListContainer}>
-          {filteredDefects.length === 0 ? (
+          {defectsLoading ? (
+            <View style={{ paddingVertical: 60, justifyContent: 'center', alignItems: 'center' }}>
+              <ActivityIndicator size="large" color="#3b82f6" />
+              <Text style={{ marginTop: 12, color: '#6b7280', fontSize: 14, fontWeight: '500' }}>Fetching defect list...</Text>
+            </View>
+          ) : filteredDefects.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="bug-outline" size={48} color="#9ca3af" style={styles.emptyIcon} />
               <Text style={styles.emptyTitle}>No defects found</Text>
@@ -354,7 +692,10 @@ const Defects = () => {
               const statusColors = getStatusColors(defect.status);
               const severityColor = defect.severity === 'High' ? '#ef4444' : defect.severity === 'Medium' ? '#f59e0b' : '#10b981';
               const priorityColor = defect.priority === 'Critical' ? '#dc2626' : defect.priority === 'High' ? '#ef4444' : defect.priority === 'Medium' ? '#f59e0b' : '#3b82f6';
-              
+              const isExpanded = expandedCardIds.includes(defect.id);
+              const isStatusDropdownOpen = activeStatusDropdownId === defect.id;
+              const isAssigneeDropdownOpen = activeAssigneeDropdownId === defect.id;
+
               return (
                 <View key={defect.id} style={styles.defectCard}>
                   {/* Card Header */}
@@ -365,21 +706,53 @@ const Defects = () => {
                         <Text style={styles.moduleTagText}>{defect.module} &gt; {defect.submodule}</Text>
                       </View>
                     </View>
-                    <View style={[styles.cardStatusBadge, { backgroundColor: statusColors.bg }]}>
+                    
+                    {/* Status Dropdown Trigger */}
+                    <TouchableOpacity 
+                      style={[styles.cardStatusBadgeDropdown, { backgroundColor: statusColors.bg }]}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        setActiveAssigneeDropdownId(null);
+                        setActiveStatusDropdownId(isStatusDropdownOpen ? null : defect.id);
+                      }}
+                    >
                       <Text style={[styles.cardStatusText, { color: statusColors.text }]}>{defect.status}</Text>
-                    </View>
+                      <Ionicons name={isStatusDropdownOpen ? "chevron-up" : "chevron-down"} size={12} color={statusColors.text} style={{ marginLeft: 4 }} />
+                    </TouchableOpacity>
                   </View>
+
+                  {/* Status Dropdown Options List */}
+                  {isStatusDropdownOpen && (
+                    <View style={styles.dropdownOptionsContainer}>
+                      <Text style={styles.dropdownTitle}>Change Status:</Text>
+                      <View style={styles.dropdownOptionsGrid}>
+                        {(['New', 'Open', 'In Progress', 'Fixed', 'Closed', 'Duplicate', 'Rejected'] as const).map(st => {
+                          const stColors = getStatusColors(st);
+                          const isCurrent = defect.status === st;
+                          return (
+                            <TouchableOpacity
+                              key={st}
+                              style={[
+                                styles.dropdownOptionItem,
+                                { backgroundColor: stColors.bg },
+                                isCurrent && { borderWidth: 1.5, borderColor: stColors.text }
+                              ]}
+                              onPress={() => handleStatusChange(defect.id, st)}
+                            >
+                              <Text style={[styles.dropdownOptionText, { color: stColors.text, fontWeight: isCurrent ? 'bold' : 'normal' }]}>
+                                {st}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  )}
 
                   {/* Card Description */}
                   <Text style={styles.defectDescription}>{defect.briefDescription}</Text>
-                  
-                  {/* Card Steps */}
-                  <View style={styles.stepsContainer}>
-                    <Text style={styles.stepsTitle}>Steps to Reproduce:</Text>
-                    <Text style={styles.stepsText} numberOfLines={3} ellipsizeMode="tail">{defect.steps}</Text>
-                  </View>
 
-                  {/* Card Footer tags */}
+                  {/* Card Footer */}
                   <View style={styles.cardFooter}>
                     <View style={styles.pillsRow}>
                       <View style={[styles.pillBadge, { borderColor: severityColor }]}>
@@ -391,46 +764,148 @@ const Defects = () => {
                         <Text style={[styles.pillText, { color: priorityColor }]}>{defect.priority}</Text>
                       </View>
                     </View>
-                    
+
                     <View style={styles.rightFooterRow}>
-                      <View style={styles.assignedContainer}>
-                        <Ionicons name="person-circle-outline" size={16} color="#6b7280" />
-                        <Text style={styles.assignedText}>{defect.assignedTo}</Text>
-                      </View>
-                      
+                      {/* Interactive Assignee Dropdown Trigger */}
                       <TouchableOpacity 
-                        style={styles.reassignButton}
+                        style={[
+                          styles.assignedContainerDropdown, 
+                          isAssigneeDropdownOpen && styles.assignedContainerDropdownActive
+                        ]}
                         activeOpacity={0.7}
-                        onPress={() => setReassigningDefectId(reassigningDefectId === defect.id ? null : defect.id)}
+                        onPress={() => {
+                          setActiveStatusDropdownId(null);
+                          setActiveAssigneeDropdownId(isAssigneeDropdownOpen ? null : defect.id);
+                        }}
                       >
-                        <Ionicons name="people-outline" size={14} color="#3b82f6" />
-                        <Text style={styles.reassignButtonText}>Reassign</Text>
+                        <Ionicons name="person-circle-outline" size={16} color="#3b82f6" />
+                        <Text style={styles.assignedText}>{defect.assignedTo}</Text>
+                        <Ionicons name={isAssigneeDropdownOpen ? "chevron-up" : "chevron-down"} size={12} color="#6b7280" />
                       </TouchableOpacity>
                     </View>
                   </View>
 
-                  {/* Collapsible Reassign Developer Selector */}
-                  {reassigningDefectId === defect.id && (
-                    <View style={styles.reassignContainer}>
-                      <Text style={styles.reassignTitle}>Reassign Developer:</Text>
+                  {/* Assignee Dropdown Options List */}
+                  {isAssigneeDropdownOpen && (
+                    <View style={styles.dropdownOptionsContainer}>
+                      <Text style={styles.dropdownTitle}>Reassign Developer:</Text>
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.reassignChipsRow}>
-                        {['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Grace', 'Heidi', 'Ivan', 'Judy'].map(dev => (
-                          <TouchableOpacity
-                            key={dev}
-                            onPress={() => handleReassign(defect.id, dev)}
-                            style={[
-                              styles.reassignChip,
-                              defect.assignedTo === dev && styles.activeReassignChip
-                            ]}
-                          >
-                            <Text style={[styles.reassignChipText, defect.assignedTo === dev && styles.activeReassignChipText]}>
-                              {dev}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
+                        {['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Grace', 'Heidi', 'Ivan', 'Judy'].map(dev => {
+                          const isCurrent = defect.assignedTo === dev;
+                          return (
+                            <TouchableOpacity
+                              key={dev}
+                              onPress={() => handleReassign(defect.id, dev)}
+                              style={[
+                                styles.reassignChip,
+                                isCurrent && styles.activeReassignChip
+                              ]}
+                            >
+                              <Text style={[styles.reassignChipText, isCurrent && styles.activeReassignChipText]}>
+                                {dev}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
                       </ScrollView>
                     </View>
                   )}
+
+                  {/* Accordion Expandable Detailed Section */}
+                  {isExpanded && (
+                    <View style={styles.expandedDetailsSection}>
+                      
+                      {/* Steps to Reproduce */}
+                      <View style={styles.detailsBlock}>
+                        <Text style={styles.detailsBlockTitle}>Steps to Reproduce:</Text>
+                        <View style={styles.stepsInnerContainer}>
+                          <Text style={styles.stepsText}>{defect.steps}</Text>
+                        </View>
+                      </View>
+
+                      {/* Sleek Attachment Container */}
+                      <View style={styles.detailsBlock}>
+                        <Text style={styles.detailsBlockTitle}>Attachment:</Text>
+                        {defect.attachment ? (
+                          <View style={styles.attachmentBox}>
+                            <Ionicons name="document-attach-outline" size={18} color="#3b82f6" />
+                            <Text style={styles.attachmentName} numberOfLines={1}>{defect.attachment}</Text>
+                            <TouchableOpacity 
+                              style={styles.attachmentViewBtn}
+                              onPress={() => Alert.alert('Open File', `Opening attachment: ${defect.attachment}`)}
+                            >
+                              <Text style={styles.attachmentViewBtnText}>View File</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ) : (
+                          <View style={styles.noAttachmentBox}>
+                            <Ionicons name="document-outline" size={14} color="#9ca3af" />
+                            <Text style={styles.noAttachmentText}>No attachments uploaded</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Technical Details Grid */}
+                      <View style={styles.detailsGrid}>
+                        <View style={styles.detailsGridCell}>
+                          <Text style={styles.detailsGridLabel}>Type</Text>
+                          <Text style={styles.detailsGridValue}>{defect.type}</Text>
+                        </View>
+                        <View style={styles.detailsGridCell}>
+                          <Text style={styles.detailsGridLabel}>Release</Text>
+                          <Text style={styles.detailsGridValue}>{defect.release}</Text>
+                        </View>
+                        <View style={styles.detailsGridCell}>
+                          <Text style={styles.detailsGridLabel}>Entered By</Text>
+                          <Text style={styles.detailsGridValue}>{defect.enteredBy}</Text>
+                        </View>
+                      </View>
+
+                      {/* History Log Timeline (Simple horizontal path status flow) */}
+                      <View style={styles.detailsBlock}>
+                        <Text style={styles.detailsBlockTitle}>Defect Life Cycle History:</Text>
+                        <View style={styles.historyPathContainer}>
+                          {getStatusHistoryPath(defect.status).map((step, idx, arr) => (
+                            <React.Fragment key={idx}>
+                              <View style={[
+                                styles.historyStepBadge,
+                                idx === arr.length - 1 ? styles.activeHistoryStepBadge : styles.inactiveHistoryStepBadge
+                              ]}>
+                                <Text style={[
+                                  styles.historyStepText,
+                                  idx === arr.length - 1 ? styles.activeHistoryStepText : styles.inactiveHistoryStepText
+                                ]}>
+                                  {step}
+                                </Text>
+                              </View>
+                              {idx < arr.length - 1 && (
+                                <Ionicons name="arrow-forward" size={12} color="#9ca3af" style={{ marginHorizontal: 2 }} />
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </View>
+                      </View>
+
+                    </View>
+                  )}
+
+                  {/* Accordion Expansion Trigger Button */}
+                  <TouchableOpacity 
+                    style={styles.accordionToggleBtn}
+                    activeOpacity={0.6}
+                    onPress={() => toggleCardExpansion(defect.id)}
+                  >
+                    <Text style={styles.accordionToggleBtnText}>
+                      {isExpanded ? "Hide Details" : "Show More Details"}
+                    </Text>
+                    <Ionicons 
+                      name={isExpanded ? "chevron-up" : "chevron-down"} 
+                      size={14} 
+                      color="#3b82f6" 
+                      style={{ marginLeft: 4 }} 
+                    />
+                  </TouchableOpacity>
+
                 </View>
               );
             })
@@ -464,7 +939,7 @@ const styles = StyleSheet.create({
   content: {
     paddingTop: Platform.OS === 'ios' ? 124 : 80,
     paddingHorizontal: 0,
-    paddingBottom: 0,
+    paddingBottom: 130, // Sleek bottom padding so the last defect card scrolls completely clear of the footer!
   },
   projectSelectorContainer: {
     backgroundColor: '#fff',
@@ -638,6 +1113,22 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '600',
   },
+  disabledContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  disabledText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontWeight: '500',
+  },
   defectsListContainer: {
     paddingHorizontal: 20,
     gap: 16,
@@ -699,14 +1190,51 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontWeight: '500',
   },
-  cardStatusBadge: {
-    paddingHorizontal: 10,
+  cardStatusBadgeDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.1)',
   },
   cardStatusText: {
     fontSize: 11,
     fontWeight: 'bold',
+  },
+  dropdownOptionsContainer: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    gap: 8,
+  },
+  dropdownTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  dropdownOptionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  dropdownOptionItem: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  dropdownOptionText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   defectDescription: {
     fontSize: 14,
@@ -714,25 +1242,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 20,
     marginBottom: 10,
-  },
-  stepsContainer: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#f3f4f6',
-  },
-  stepsTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6b7280',
-    marginBottom: 2,
-  },
-  stepsText: {
-    fontSize: 12,
-    color: '#4b5563',
-    lineHeight: 18,
   },
   cardFooter: {
     flexDirection: 'row',
@@ -769,45 +1278,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  assignedContainer: {
+  assignedContainerDropdown: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-  },
-  assignedText: {
-    fontSize: 12,
-    color: '#4b5563',
-    fontWeight: '500',
-  },
-  reassignButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#eff6ff',
     borderWidth: 1,
     borderColor: '#bfdbfe',
     borderRadius: 14,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    gap: 4,
   },
-  reassignButtonText: {
+  assignedContainerDropdownActive: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#dbeafe',
+  },
+  assignedText: {
     fontSize: 11,
-    color: '#3b82f6',
+    color: '#1d4ed8',
     fontWeight: '600',
-  },
-  reassignContainer: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
-    gap: 6,
-  },
-  reassignTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6b7280',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   reassignChipsRow: {
     gap: 6,
@@ -834,6 +1323,199 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '600',
   },
+  expandedDetailsSection: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingTop: 12,
+    gap: 12,
+  },
+  detailsBlock: {
+    gap: 4,
+  },
+  detailsBlockTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  stepsInnerContainer: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+  },
+  stepsText: {
+    fontSize: 12,
+    color: '#4b5563',
+    lineHeight: 18,
+  },
+  attachmentBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 8,
+  },
+  attachmentName: {
+    flex: 1,
+    fontSize: 11,
+    color: '#1d4ed8',
+    fontWeight: '500',
+  },
+  attachmentViewBtn: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  attachmentViewBtnText: {
+    fontSize: 10,
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  noAttachmentBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#f9fafb',
+    borderRadius: 6,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+  },
+  noAttachmentText: {
+    fontSize: 11,
+    color: '#9ca3af',
+    fontWeight: '500',
+  },
+  detailsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+  },
+  detailsGridCell: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  detailsGridLabel: {
+    fontSize: 8,
+    color: '#9ca3af',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  detailsGridValue: {
+    fontSize: 11,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  timelineContainer: {
+    paddingLeft: 4,
+    marginTop: 4,
+  },
+  timelineRow: {
+    flexDirection: 'row',
+  },
+  timelineLeftColumn: {
+    alignItems: 'center',
+    marginRight: 10,
+    width: 12,
+  },
+  timelineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#d1d5db',
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+    zIndex: 10,
+    marginTop: 4,
+  },
+  activeTimelineDot: {
+    backgroundColor: '#3b82f6',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  timelineLine: {
+    width: 1.5,
+    flex: 1,
+    backgroundColor: '#e5e7eb',
+    marginTop: -2,
+    marginBottom: -4,
+  },
+  timelineContentCard: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+    borderRadius: 6,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+    marginBottom: 10,
+    gap: 3,
+  },
+  timelineHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  timelineUser: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  timelineTime: {
+    fontSize: 9,
+    color: '#9ca3af',
+  },
+  timelineNote: {
+    fontSize: 10,
+    color: '#4b5563',
+    lineHeight: 14,
+  },
+  timelineBadgeRow: {
+    flexDirection: 'row',
+    marginTop: 2,
+  },
+  timelineStatusBadge: {
+    backgroundColor: '#e5e7eb',
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  timelineStatusText: {
+    fontSize: 8,
+    color: '#4b5563',
+    fontWeight: 'bold',
+  },
+  accordionToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0f7ff',
+    borderRadius: 8,
+    paddingVertical: 8,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+  },
+  accordionToggleBtnText: {
+    fontSize: 11,
+    color: '#3b82f6',
+    fontWeight: '700',
+  },
   floatingScrollDown: {
     position: 'absolute',
     bottom: 95, // Floating beautifully just above the footer navigation bar!
@@ -851,6 +1533,39 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
     zIndex: 9999,
+  },
+  historyPathContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+    marginTop: 6,
+    gap: 4,
+  },
+  historyStepBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  activeHistoryStepBadge: {
+    backgroundColor: '#3b82f6',
+  },
+  inactiveHistoryStepBadge: {
+    backgroundColor: '#e5e7eb',
+  },
+  historyStepText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  activeHistoryStepText: {
+    color: '#ffffff',
+  },
+  inactiveHistoryStepText: {
+    color: '#4b5563',
   },
 });
 

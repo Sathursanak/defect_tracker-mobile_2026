@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Animated, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import TopHeader from '../components/TopHeader';
@@ -7,16 +7,12 @@ import Footer from '../components/Footer';
 import ProjectSelector from '../components/ProjectSelector';
 import SeverityBreakdown from '../components/SeverityBreakdown';
 import DefectIndicators from './DefectIndicators';
-import { mockProjects, getProjectData } from '../data/mockData';
-
+import * as api from '../services/api';
 
 const ProjectDetails = () => {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<Record<string, object | undefined>, string>>();
 
-  const initialProject =
-    (route.params as { projectName?: string } | undefined)?.projectName ||
-    mockProjects[0].name;
   const scrollViewRef = useRef<ScrollView>(null);
   const projectSelectorRef = useRef<ScrollView>(null);
   
@@ -51,12 +47,45 @@ const ProjectDetails = () => {
     }
   };
 
-  const [selectedProject, setSelectedProject] = useState(initialProject);
+  const [projects, setProjects] = useState<string[]>([]);
+  const [selectedProject, setSelectedProject] = useState('');
+  const [projectDetails, setProjectDetails] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
-  const allProjects = mockProjects.map(project => project.name);
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const names = await api.getProjects();
+        setProjects(names);
+        const initial = (route.params as { projectName?: string } | undefined)?.projectName || names[0] || '';
+        setSelectedProject(initial);
+      } catch (error) {
+        console.error('Error loading projects:', error);
+      }
+    };
+    loadProjects();
+  }, [route.params]);
+
+  useEffect(() => {
+    if (!selectedProject) return;
+    const loadDetails = async () => {
+      setDetailsLoading(true);
+      try {
+        const details = await api.getProjectDetails(selectedProject);
+        setProjectDetails(details);
+      } catch (error) {
+        console.error('Error loading project details:', error);
+      } finally {
+        setDetailsLoading(false);
+        setLoading(false);
+      }
+    };
+    loadDetails();
+  }, [selectedProject]);
 
   const getOrderedProjects = () => {
-    const ordered = [...allProjects];
+    const ordered = [...projects];
     const selectedIndex = ordered.indexOf(selectedProject);
     if (selectedIndex > 0) {
       const [selected] = ordered.splice(selectedIndex, 1);
@@ -65,12 +94,7 @@ const ProjectDetails = () => {
     return ordered;
   };
 
-  const getCurrentProjectRisk = () => {
-    const projectData = getProjectData(selectedProject);
-    return projectData ? projectData.risk : 'low';
-  };
-
-  const currentRisk = getCurrentProjectRisk();
+  const currentRisk = projectDetails?.risk || 'low';
 
   const handleProjectSelect = (project: string) => {
     setSelectedProject(project);
@@ -78,127 +102,112 @@ const ProjectDetails = () => {
     projectSelectorRef.current?.scrollTo({ x: 0, animated: true });
   };
 
-  const getDefectData = () => {
-    const projectData = getProjectData(selectedProject);
-    return projectData
-      ? projectData.defectData
-      : {
-        high: {
-          total: 0,
-          reopen: 0,
-          closed: 0,
-          new: 0,
-          reject: 0,
-          open: 0,
-          duplicate: 0,
-          fixed: 0,
-        },
-        medium: {
-          total: 0,
-          reopen: 0,
-          closed: 0,
-          new: 0,
-          reject: 0,
-          open: 0,
-          duplicate: 0,
-          fixed: 0,
-        },
-        low: {
-          total: 0,
-          reopen: 0,
-          closed: 0,
-          new: 0,
-          reject: 0,
-          open: 0,
-          duplicate: 0,
-          fixed: 0,
-        },
-      };
+  const defectData = projectDetails?.defectData || {
+    high: { total: 0, reopen: 0, closed: 0, new: 0, reject: 0, open: 0, duplicate: 0, fixed: 0 },
+    medium: { total: 0, reopen: 0, closed: 0, new: 0, reject: 0, open: 0, duplicate: 0, fixed: 0 },
+    low: { total: 0, reopen: 0, closed: 0, new: 0, reject: 0, open: 0, duplicate: 0, fixed: 0 },
   };
 
-  const defectData = getDefectData();
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
       <TopHeader
-        title={`${selectedProject} Details`}
+        title={selectedProject ? `${selectedProject} Details` : "Project Details"}
         showLogout={true}
       />
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.container}
-        contentContainerStyle={styles.scrollContent}
-        scrollEventThrottle={16}
-        onScroll={handleScroll}
-      >
-
-        <View style={styles.projectSelectorContainer}>
-          <ProjectSelector
-            ref={projectSelectorRef}
-            projects={getOrderedProjects()}
-            selectedProject={selectedProject}
-            onProjectSelect={handleProjectSelect}
-          />
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9fafb' }}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={{ marginTop: 12, color: '#6b7280', fontSize: 15, fontWeight: '600' }}>Loading Project Details...</Text>
         </View>
-
-        <View style={styles.projectHeader}>
-          <View style={styles.projectTitleWrapper}>
-            <Text style={styles.projectTitle} numberOfLines={2} ellipsizeMode="tail">
-              {selectedProject}
-            </Text>
-            <TouchableOpacity
-              style={styles.projectDefectsButton}
-              activeOpacity={0.8}
-              onPress={() =>
-                (navigation as any).navigate('Defects', {
-                  projectName: selectedProject,
-                })
-              }
-            >
-              <Text style={styles.projectDefectsButtonText}>View Defects </Text>
-            </TouchableOpacity>
-          </View>
-          <View
-            style={[
-              styles.statusBadge,
-              {
-                backgroundColor:
-                  currentRisk === 'high'
-                    ? '#c62828'
-                    : currentRisk === 'medium'
-                      ? '#f9a825'
-                      : '#2ecc40',
-              },
-            ]}
+      ) : (
+        <>
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.container}
+            contentContainerStyle={styles.scrollContent}
+            scrollEventThrottle={16}
+            onScroll={handleScroll}
           >
-            <Text style={styles.statusText}>
-              {currentRisk === 'high'
-                ? 'High Risk'
-                : currentRisk === 'medium'
-                  ? 'Medium Risk'
-                  : 'Low Risk'}
-            </Text>
-          </View>
-        </View>
 
-         <SeverityBreakdown 
-          defectData={defectData} 
-        />
+            <View style={styles.projectSelectorContainer}>
+              <ProjectSelector
+                ref={projectSelectorRef}
+                projects={getOrderedProjects()}
+                selectedProject={selectedProject}
+                onProjectSelect={handleProjectSelect}
+              />
+            </View>
 
-        <View style={styles.indicatorsContainer}>
-          <DefectIndicators defectData={defectData} />
-        </View>
-      </ScrollView>
-      {showScrollDownButton && (
-        <TouchableOpacity
-          style={styles.floatingScrollDown}
-          activeOpacity={0.8}
-          onPress={() => scrollViewRef.current?.scrollTo({ y: 430, animated: true })}
-        >
-          <Animated.View style={{ transform: [{ translateY: animY }] }}>
-            <Ionicons name="chevron-down" size={22} color="#3b82f6" />
-          </Animated.View>
-        </TouchableOpacity>
+            {detailsLoading ? (
+              <View style={{ height: 300, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#3b82f6" />
+                <Text style={{ marginTop: 12, color: '#6b7280', fontSize: 14, fontWeight: '500' }}>Refreshing Metrics...</Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.projectHeader}>
+                  <View style={styles.projectTitleWrapper}>
+                    <Text style={styles.projectTitle} numberOfLines={2} ellipsizeMode="tail">
+                      {selectedProject}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.projectDefectsButton}
+                      activeOpacity={0.8}
+                      onPress={() =>
+                        (navigation as any).navigate('Defects', {
+                          projectName: selectedProject,
+                        })
+                      }
+                    >
+                      <Text style={styles.projectDefectsButtonText}>View Defects </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      {
+                        backgroundColor:
+                          currentRisk === 'high'
+                            ? '#c62828'
+                            : currentRisk === 'medium'
+                              ? '#f9a825'
+                              : '#2ecc40',
+                      },
+                    ]}
+                  >
+                    <Text style={styles.statusText}>
+                      {currentRisk === 'high'
+                        ? 'High Risk'
+                        : currentRisk === 'medium'
+                          ? 'Medium Risk'
+                          : 'Low Risk'}
+                    </Text>
+                  </View>
+                </View>
+
+                <SeverityBreakdown 
+                  defectData={defectData} 
+                />
+
+                <View style={styles.indicatorsContainer}>
+                  <DefectIndicators defectData={defectData} />
+                </View>
+              </>
+            )}
+          </ScrollView>
+          {showScrollDownButton && !detailsLoading && (
+            <TouchableOpacity
+              style={styles.floatingScrollDown}
+              activeOpacity={0.8}
+              onPress={() => scrollViewRef.current?.scrollTo({ y: 430, animated: true })}
+            >
+              <Animated.View style={{ transform: [{ translateY: animY }] }}>
+                <Ionicons name="chevron-down" size={22} color="#3b82f6" />
+              </Animated.View>
+            </TouchableOpacity>
+          )}
+        </>
       )}
       <Footer />
     </View>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,14 +9,8 @@ import {
   Dimensions,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {
-  mockNotifications,
-  getUnreadNotificationCount,
-  getRecentNotifications,
-  markNotificationAsRead,
-  markAllNotificationsAsRead,
-  Notification,
-} from '../data/mockData';
+import { Notification } from '../data/mockData';
+import * as api from '../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -30,27 +24,59 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
   onPress,
 }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  const unreadCount = getUnreadNotificationCount();
-  const recentNotifications = getRecentNotifications();
+  const fetchNotifications = async () => {
+    try {
+      const data = await api.getNotifications();
+      const count = await api.getUnreadNotificationCount();
+      setNotifications(data);
+      setUnreadCount(count);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    // Poll notifications every 10 seconds to simulate a live notification service
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Sort notifications to show recent first
+  const recentNotifications = [...notifications].sort((a, b) => {
+    const tA = a.timestamp instanceof Date ? a.timestamp.getTime() : new Date(a.timestamp).getTime();
+    const tB = b.timestamp instanceof Date ? b.timestamp.getTime() : new Date(b.timestamp).getTime();
+    return tB - tA;
+  });
 
   const handleNotificationPress = () => {
     setIsModalVisible(true);
+    fetchNotifications();
   };
 
   const handleCloseModal = () => {
     setIsModalVisible(false);
   };
 
-  const handleMarkAsRead = (notificationId: string) => {
-    markNotificationAsRead(notificationId);
-    setNotifications([...mockNotifications]); // Trigger re-render
+  const handleMarkAsRead = async (notificationId: string) => {
+    try {
+      await api.markNotificationAsRead(notificationId);
+      await fetchNotifications();
+    } catch (error) {
+      console.error('Error marking as read:', error);
+    }
   };
 
-  const handleMarkAllAsRead = () => {
-    markAllNotificationsAsRead();
-    setNotifications([...mockNotifications]); // Trigger re-render
+  const handleMarkAllAsRead = async () => {
+    try {
+      await api.markAllNotificationsAsRead();
+      await fetchNotifications();
+    } catch (error) {
+      console.error('Error marking all read:', error);
+    }
   };
 
   const getNotificationIcon = (type: string) => {
@@ -67,21 +93,23 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
     }
   };
 
-  const formatTimestamp = (timestamp: Date) => {
+  const formatTimestamp = (timestamp: Date | string) => {
+    const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
     const now = new Date();
-    const diff = now.getTime() - timestamp.getTime();
+    const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / (1000 * 60));
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
     if (minutes < 60) {
-      return `${minutes}m ago`;
+      return `${Math.max(0, minutes)}m ago`;
     } else if (hours < 24) {
       return `${hours}h ago`;
     } else {
       return `${days}d ago`;
     }
   };
+
 
   return (
     <>

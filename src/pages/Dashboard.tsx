@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -13,14 +14,10 @@ import StatusCard from '../components/StatusCard';
 import ProjectCard from '../components/ProjectCard';
 import TopHeader from '../components/TopHeader';
 import Footer from '../components/Footer';
-import { mockProjects } from '../data/mockData';
+import * as api from '../services/api';
 
-const PROJECTS: { name: string; risk: RiskLevel }[] = mockProjects.map(
-  project => ({
-    name: project.name,
-    risk: project.risk,
-  }),
-);
+// Define RiskLevel type
+type RiskLevel = 'high' | 'medium' | 'low';
 
 const RISK_COLORS = {
   high: '#c62828',
@@ -33,9 +30,6 @@ const RISK_LABELS = {
   medium: 'Medium Risk',
   low: 'Low Risk',
 };
-
-// Define RiskLevel type
-type RiskLevel = 'high' | 'medium' | 'low';
 
 const FILTERS = [
   { key: 'all', label: 'All Projects' },
@@ -64,67 +58,98 @@ const getProjectIcon = (risk: RiskLevel) => {
 const Dashboard = () => {
   const navigation = useNavigation();
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [projects, setProjects] = useState<{ name: string; risk: RiskLevel }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [projectCounts, setProjectCounts] = useState({ high: 0, medium: 0, low: 0 });
 
-  // Calculate dynamic counts for each risk level
-  const projectCounts = {
-    high: PROJECTS.filter(p => p.risk === 'high').length,
-    medium: PROJECTS.filter(p => p.risk === 'medium').length,
-    low: PROJECTS.filter(p => p.risk === 'low').length,
-  };
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const projectNames = await api.getProjects();
+        // Fetch details for each project to determine risk dynamically
+        const detailsPromises = projectNames.map(name => api.getProjectDetails(name));
+        const details = await Promise.all(detailsPromises);
+        
+        const loadedProjects = details
+          .filter(Boolean)
+          .map(d => ({
+            name: d!.name,
+            risk: d!.risk as RiskLevel,
+          }));
+
+        setProjects(loadedProjects);
+
+        // Fetch dashboard metrics
+        const metrics = await api.getDashboardMetrics();
+        setProjectCounts({
+          high: metrics.highRiskCount,
+          medium: metrics.mediumRiskCount,
+          low: metrics.lowRiskCount,
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   // Create status cards with dynamic counts
- const statusCards = [
-  {
-    key: 'high',
-    label: 'High Risk Projects',
-    count: projectCounts.high,
-    desc: 'Needs attention',
-    color: '#c62828',
-    icon: (
-      <Ionicons
-        name="alert-circle-outline"
-        size={36}
-        color="#c62828"
-      />
-    ),
-  },
-  {
-    key: 'medium',
-    label: 'Medium Risk Projects',
-    count: projectCounts.medium,
-    desc: 'Monitor closely',
-    color: '#f9a825',
-    icon: (
-      <Ionicons
-        name="time-outline"
-        size={36}
-        color="#f9a825"
-      />
-    ),
-  },
-  {
-    key: 'low',
-    label: 'Low Risk Projects',
-    count: projectCounts.low,
-    desc: 'On track',
-    color: '#2ecc40',
-    icon: (
-      <Ionicons
-        name="checkmark-circle-outline"
-        size={36}
-        color="#2ecc40"
-      />
-    ),
-  },
-];
+  const statusCards = [
+    {
+      key: 'high',
+      label: 'High Risk Projects',
+      count: projectCounts.high,
+      desc: 'Needs attention',
+      color: '#c62828',
+      icon: (
+        <Ionicons
+          name="alert-circle-outline"
+          size={36}
+          color="#c62828"
+        />
+      ),
+    },
+    {
+      key: 'medium',
+      label: 'Medium Risk Projects',
+      count: projectCounts.medium,
+      desc: 'Monitor closely',
+      color: '#f9a825',
+      icon: (
+        <Ionicons
+          name="time-outline"
+          size={36}
+          color="#f9a825"
+        />
+      ),
+    },
+    {
+      key: 'low',
+      label: 'Low Risk Projects',
+      count: projectCounts.low,
+      desc: 'On track',
+      color: '#2ecc40',
+      icon: (
+        <Ionicons
+          name="checkmark-circle-outline"
+          size={36}
+          color="#2ecc40"
+        />
+      ),
+    },
+  ];
 
   const filteredProjects =
     selectedFilter === 'all'
-      ? PROJECTS.sort((a, b) => {
+      ? [...projects].sort((a, b) => {
         const riskOrder = { high: 0, medium: 1, low: 2 };
         return riskOrder[a.risk] - riskOrder[b.risk];
       })
-      : PROJECTS.filter(p => p.risk === selectedFilter);
+      : projects.filter(p => p.risk === selectedFilter);
+
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
@@ -132,77 +157,83 @@ const Dashboard = () => {
         title="Dashboard Overview"
         showLogout={true}
       />
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.scrollContent}
-      >
-
-        <View style={styles.statusCardsRow}>
-          {statusCards.map(card => (
-            <StatusCard
-              key={card.key}
-              icon={card.icon}
-              label={card.label}
-              count={card.count}
-              desc={card.desc}
-              color={card.color}
-            />
-          ))}
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9fafb' }}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={{ marginTop: 12, color: '#6b7280', fontSize: 15, fontWeight: '600' }}>Loading Dashboard...</Text>
         </View>
-
-        <View style={styles.projectsSection}>
-          <View style={styles.filtersRow}>
-            {FILTERS.map(filter => (
-              <TouchableOpacity
-                key={filter.key}
-                style={[
-                  styles.filterButton,
-                  selectedFilter === filter.key && [
-                    styles.filterButtonActive,
-                    filter.key === 'high' && { borderColor: '#c62828' },
-                    filter.key === 'medium' && { borderColor: '#f9a825' },
-                    filter.key === 'low' && { borderColor: '#2ecc40' },
-                  ],
-                ]}
-                onPress={() => setSelectedFilter(filter.key)}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.filterButtonText,
-                    selectedFilter === filter.key &&
-                    styles.filterButtonTextActive,
-                    filter.key === 'high' && { color: '#c62828' },
-                    filter.key === 'medium' && { color: '#f9a825' },
-                    filter.key === 'low' && { color: '#2ecc40' },
-                  ]}
-                >
-                  {filter.label}
-                </Text>
-              </TouchableOpacity>
+      ) : (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.statusCardsRow}>
+            {statusCards.map(card => (
+              <StatusCard
+                key={card.key}
+                icon={card.icon}
+                label={card.label}
+                count={card.count}
+                desc={card.desc}
+                color={card.color}
+              />
             ))}
           </View>
-          <View style={styles.projectsRow}>
-            {filteredProjects.length === 0 ? (
-              <Text style={styles.noProjectsText}>
-                No projects found for this filter.
-              </Text>
-            ) : (
-              filteredProjects.map((project, idx) => (
-                <ProjectCard
-                  key={project.name + idx}
-                  name={project.name}
-                  risk={project.risk}
-                  riskColor={RISK_COLORS[project.risk] || '#3b82f6'}
-                  riskLabel={RISK_LABELS[project.risk]}
-                  icon={getProjectIcon(project.risk)}
-                  size={PROJECT_CARD_SIZE}
-                />
-              ))
-            )}
+
+          <View style={styles.projectsSection}>
+            <View style={styles.filtersRow}>
+              {FILTERS.map(filter => (
+                <TouchableOpacity
+                  key={filter.key}
+                  style={[
+                    styles.filterButton,
+                    selectedFilter === filter.key && [
+                      styles.filterButtonActive,
+                      filter.key === 'high' && { borderColor: '#c62828' },
+                      filter.key === 'medium' && { borderColor: '#f9a825' },
+                      filter.key === 'low' && { borderColor: '#2ecc40' },
+                    ],
+                  ]}
+                  onPress={() => setSelectedFilter(filter.key)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      selectedFilter === filter.key &&
+                      styles.filterButtonTextActive,
+                      filter.key === 'high' && { color: '#c62828' },
+                      filter.key === 'medium' && { color: '#f9a825' },
+                      filter.key === 'low' && { color: '#2ecc40' },
+                    ]}
+                  >
+                    {filter.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.projectsRow}>
+              {filteredProjects.length === 0 ? (
+                <Text style={styles.noProjectsText}>
+                  No projects found for this filter.
+                </Text>
+              ) : (
+                filteredProjects.map((project, idx) => (
+                  <ProjectCard
+                    key={project.name + idx}
+                    name={project.name}
+                    risk={project.risk}
+                    riskColor={RISK_COLORS[project.risk] || '#3b82f6'}
+                    riskLabel={RISK_LABELS[project.risk]}
+                    icon={getProjectIcon(project.risk)}
+                    size={PROJECT_CARD_SIZE}
+                  />
+                ))
+              )}
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      )}
       <Footer />
     </View>
   );
