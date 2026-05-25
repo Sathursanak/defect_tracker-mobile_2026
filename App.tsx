@@ -7,12 +7,14 @@ import ForgotPasswordPage from './src/pages/ForgotPasswordPage';
 import Dashboard from './src/pages/Dashboard';
 import ProjectDetails from './src/pages/ProjectDetails';
 import Defects from './src/pages/Defects';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
+    <SafeAreaProvider>
     <AuthProvider>
       <NavigationContainer>
         <Stack.Navigator
@@ -28,5 +30,6 @@ export default function App() {
       </Stack.Navigator>
     </NavigationContainer>
     </AuthProvider>
+    </SafeAreaProvider>
   );
 }

@@ -9,14 +9,13 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
 import StatusCard from '../components/StatusCard';
 import ProjectCard from '../components/ProjectCard';
-import TopHeader from '../components/TopHeader';
+import TopHeader, { useTopHeaderHeight } from '../components/TopHeader';
 import Footer from '../components/Footer';
 import * as api from '../services/api';
+import { premiumColors, premiumShadows } from '../theme/premiumTheme';
 
-// Define RiskLevel type
 type RiskLevel = 'high' | 'medium' | 'low';
 
 const RISK_COLORS = {
@@ -32,15 +31,17 @@ const RISK_LABELS = {
 };
 
 const FILTERS = [
-  { key: 'all', label: 'All Projects' },
-  { key: 'high', label: 'High Risk' },
-  { key: 'medium', label: 'Medium Risk' },
-  { key: 'low', label: 'Low Risk' },
+  { key: 'all', label: 'All', color: premiumColors.primary },
+  { key: 'high', label: 'High', color: RISK_COLORS.high },
+  { key: 'medium', label: 'Medium', color: RISK_COLORS.medium },
+  { key: 'low', label: 'Low', color: RISK_COLORS.low },
 ];
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_MARGIN = 10;
 const PROJECT_CARD_SIZE = Math.max((SCREEN_WIDTH - 4 * CARD_MARGIN) / 2, 140);
+const GRID_GAP = 10;
+const PROJECTS_ROW_WIDTH = PROJECT_CARD_SIZE * 2 + GRID_GAP;
 
 const getProjectIcon = (risk: RiskLevel) => {
   switch (risk) {
@@ -55,8 +56,32 @@ const getProjectIcon = (risk: RiskLevel) => {
   }
 };
 
+const SectionHeader = ({
+  icon,
+  title,
+  badge,
+}: {
+  icon: string;
+  title: string;
+  badge?: string;
+}) => (
+  <View style={styles.sectionHeader}>
+    <View style={styles.sectionHeaderLeft}>
+      <View style={styles.sectionIconWrap}>
+        <Ionicons name={icon as any} size={18} color={premiumColors.primary} />
+      </View>
+      <Text style={styles.sectionTitle}>{title}</Text>
+    </View>
+    {badge ? (
+      <View style={styles.sectionBadge}>
+        <Text style={styles.sectionBadgeText}>{badge}</Text>
+      </View>
+    ) : null}
+  </View>
+);
+
 const Dashboard = () => {
-  const navigation = useNavigation();
+  const headerOffset = useTopHeaderHeight();
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [projects, setProjects] = useState<{ name: string; risk: RiskLevel }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,10 +91,9 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       try {
         const projectNames = await api.getProjects();
-        // Fetch details for each project to determine risk dynamically
         const detailsPromises = projectNames.map(name => api.getProjectDetails(name));
         const details = await Promise.all(detailsPromises);
-        
+
         const loadedProjects = details
           .filter(Boolean)
           .map(d => ({
@@ -79,7 +103,6 @@ const Dashboard = () => {
 
         setProjects(loadedProjects);
 
-        // Fetch dashboard metrics
         const metrics = await api.getDashboardMetrics();
         setProjectCounts({
           high: metrics.highRiskCount,
@@ -96,141 +119,148 @@ const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
-  // Create status cards with dynamic counts
   const statusCards = [
     {
       key: 'high',
-      label: 'High Risk Projects',
+      label: 'High Risk',
       count: projectCounts.high,
       desc: 'Needs attention',
-      color: '#c62828',
-      icon: (
-        <Ionicons
-          name="alert-circle-outline"
-          size={36}
-          color="#c62828"
-        />
-      ),
+      color: RISK_COLORS.high,
+      icon: <Ionicons name="alert-circle-outline" size={36} color={RISK_COLORS.high} />,
     },
     {
       key: 'medium',
-      label: 'Medium Risk Projects',
+      label: 'Medium Risk',
       count: projectCounts.medium,
       desc: 'Monitor closely',
-      color: '#f9a825',
-      icon: (
-        <Ionicons
-          name="time-outline"
-          size={36}
-          color="#f9a825"
-        />
-      ),
+      color: RISK_COLORS.medium,
+      icon: <Ionicons name="time-outline" size={36} color={RISK_COLORS.medium} />,
     },
     {
       key: 'low',
-      label: 'Low Risk Projects',
+      label: 'Low Risk',
       count: projectCounts.low,
       desc: 'On track',
-      color: '#2ecc40',
-      icon: (
-        <Ionicons
-          name="checkmark-circle-outline"
-          size={36}
-          color="#2ecc40"
-        />
-      ),
+      color: RISK_COLORS.low,
+      icon: <Ionicons name="checkmark-circle-outline" size={36} color={RISK_COLORS.low} />,
     },
   ];
 
   const filteredProjects =
     selectedFilter === 'all'
       ? [...projects].sort((a, b) => {
-        const riskOrder = { high: 0, medium: 1, low: 2 };
-        return riskOrder[a.risk] - riskOrder[b.risk];
-      })
+          const riskOrder = { high: 0, medium: 1, low: 2 };
+          return riskOrder[a.risk] - riskOrder[b.risk];
+        })
       : projects.filter(p => p.risk === selectedFilter);
 
+  const totalProjects = projects.length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
-      <TopHeader
-        title="Dashboard Overview"
-        showLogout={true}
-      />
+    <View style={styles.screen}>
+      <TopHeader title="Dashboard Overview" showLogout={true} />
       {loading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9fafb' }}>
-          <ActivityIndicator size="large" color="#3b82f6" />
-          <Text style={{ marginTop: 12, color: '#6b7280', fontSize: 15, fontWeight: '600' }}>Loading Dashboard...</Text>
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={premiumColors.primary} />
+          <Text style={styles.loadingText}>Loading Dashboard...</Text>
         </View>
       ) : (
         <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={styles.scrollContent}
+          style={styles.scroll}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: headerOffset }]}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.statusCardsRow}>
-            {statusCards.map(card => (
-              <StatusCard
-                key={card.key}
-                icon={card.icon}
-                label={card.label}
-                count={card.count}
-                desc={card.desc}
-                color={card.color}
-              />
-            ))}
+          {/* —— Section 1: Risk overview —— */}
+          <View style={[styles.sectionCard, premiumShadows.card]}>
+            <SectionHeader icon="pie-chart-outline" title="Risk Overview" />
+            <View style={styles.metricsInner}>
+              <View style={styles.statusCardsRow}>
+                {statusCards.map((card, index) => (
+                  <StatusCard
+                    key={card.key}
+                    icon={card.icon}
+                    label={card.label}
+                    count={card.count}
+                    desc={card.desc}
+                    color={card.color}
+                    showDivider={index < statusCards.length - 1}
+                  />
+                ))}
+              </View>
+            </View>
           </View>
 
-          <View style={styles.projectsSection}>
-            <View style={styles.filtersRow}>
-              {FILTERS.map(filter => (
-                <TouchableOpacity
-                  key={filter.key}
-                  style={[
-                    styles.filterButton,
-                    selectedFilter === filter.key && [
-                      styles.filterButtonActive,
-                      filter.key === 'high' && { borderColor: '#c62828' },
-                      filter.key === 'medium' && { borderColor: '#f9a825' },
-                      filter.key === 'low' && { borderColor: '#2ecc40' },
-                    ],
-                  ]}
-                  onPress={() => setSelectedFilter(filter.key)}
-                  activeOpacity={0.8}
-                >
-                  <Text
-                    style={[
-                      styles.filterButtonText,
-                      selectedFilter === filter.key &&
-                      styles.filterButtonTextActive,
-                      filter.key === 'high' && { color: '#c62828' },
-                      filter.key === 'medium' && { color: '#f9a825' },
-                      filter.key === 'low' && { color: '#2ecc40' },
-                    ]}
-                  >
-                    {filter.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+          {/* —— Section 2: Filters + projects —— */}
+          <View style={[styles.sectionCard, styles.projectsSection, premiumShadows.card]}>
+            <SectionHeader
+              icon="grid-outline"
+              title="Projects"
+              badge={`${filteredProjects.length}${selectedFilter !== 'all' ? ` / ${totalProjects}` : ''}`}
+            />
+
+            <View style={styles.filtersBox}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filtersRow}
+              >
+                {FILTERS.map(filter => {
+                  const isActive = selectedFilter === filter.key;
+                  return (
+                    <TouchableOpacity
+                      key={filter.key}
+                      style={[
+                        styles.filterChip,
+                        isActive && [
+                          styles.filterChipActive,
+                          { backgroundColor: filter.color, borderColor: filter.color },
+                        ],
+                      ]}
+                      onPress={() => setSelectedFilter(filter.key)}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          isActive && styles.filterChipTextActive,
+                          !isActive && { color: filter.color },
+                        ]}
+                      >
+                        {filter.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </View>
-            <View style={styles.projectsRow}>
-              {filteredProjects.length === 0 ? (
+
+            {filteredProjects.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons
+                  name="folder-open-outline"
+                  size={40}
+                  color={premiumColors.primaryLight}
+                />
                 <Text style={styles.noProjectsText}>
-                  No projects found for this filter.
+                  No projects match this filter
                 </Text>
-              ) : (
-                filteredProjects.map((project, idx) => (
-                  <ProjectCard
-                    key={project.name + idx}
-                    name={project.name}
-                    risk={project.risk}
-                    riskColor={RISK_COLORS[project.risk] || '#3b82f6'}
-                    riskLabel={RISK_LABELS[project.risk]}
-                    icon={getProjectIcon(project.risk)}
-                    size={PROJECT_CARD_SIZE}
-                  />
-                ))
-              )}
-            </View>
+              </View>
+            ) : (
+              <View style={[styles.projectsRow, { width: PROJECTS_ROW_WIDTH }]}>
+                {filteredProjects.map((project, idx) => (
+                  <View key={project.name + idx} style={styles.projectCell}>
+                    <ProjectCard
+                      name={project.name}
+                      risk={project.risk}
+                      riskColor={RISK_COLORS[project.risk] || premiumColors.primary}
+                      riskLabel={RISK_LABELS[project.risk]}
+                      icon={getProjectIcon(project.risk)}
+                      size={PROJECT_CARD_SIZE}
+                    />
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </ScrollView>
       )}
@@ -240,204 +270,153 @@ const Dashboard = () => {
 };
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#E8EEF8',
+  },
+  scroll: {
+    flex: 1,
+  },
   scrollContent: {
-    paddingBottom: 100, // Add padding to prevent content from being hidden behind footer
-    paddingTop: 80, // Add padding to prevent content from being hidden behind fixed header
+    paddingHorizontal: 4,
+    paddingBottom: 110,
+    gap: 16,
   },
-  backButtonContainer: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
+  loadingWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E8EEF8',
   },
-  dashboardHeader: {
-    paddingHorizontal: 24,
+  loadingText: {
+    marginTop: 12,
+    color: premiumColors.textSecondary,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  sectionCard: {
+    backgroundColor: premiumColors.surface,
+    borderRadius: 20,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(191, 219, 254, 0.5)',
+    overflow: 'hidden',
+  },
+  projectsSection: {
+    paddingHorizontal: 6,
+    overflow: 'visible',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EFF6FF',
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  sectionIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: premiumColors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: premiumColors.textPrimary,
+    letterSpacing: -0.2,
+  },
+  sectionBadge: {
+    backgroundColor: premiumColors.surfaceMuted,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: premiumColors.inputBorder,
+  },
+  sectionBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: premiumColors.primary,
+  },
+  metricsInner: {
+    backgroundColor: '#F8FAFF',
+    borderRadius: 14,
     paddingVertical: 16,
-    backgroundColor: '#fff',
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#3b82f6',
-    marginBottom: 4,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: 18,
-    marginTop: 2,
+    paddingHorizontal: 6,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
   },
   statusCardsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    alignItems: 'stretch',
+  },
+  filtersBox: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 14,
+    paddingVertical: 10,
     paddingHorizontal: 8,
-    marginBottom: 18,
-    marginTop: 8,
-  },
-  statusCard: {
-    flex: 1,
-    minWidth: 110,
-    maxWidth: 140,
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 14,
-    marginHorizontal: 6,
-    alignItems: 'center',
-    borderWidth: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-    marginBottom: 8,
-  },
-  statusCardLabel: {
-    fontSize: 15,
-    color: '#3b82f6',
-    fontWeight: 'bold',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  statusCardCount: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginTop: 2,
-    marginBottom: 2,
-    textAlign: 'center',
-  },
-  statusCardDesc: {
-    fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  projectsSection: {
-    marginTop: 8,
-    paddingHorizontal: 12,
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#3b82f6',
-    marginBottom: 12,
-    marginLeft: 4,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   filtersRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
-    marginBottom: 18,
-    marginLeft: 1,
-    flexWrap: 'nowrap',
-  },
-  filterButton: {
-    backgroundColor: '#e4e6ebff',
-    borderRadius: 16,
-    paddingVertical: 6,
+    alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 4,
-    margin: 4,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
   },
-  filterButtonActive: {
-    backgroundColor: '#e6eeff',
-  },
-  filterButtonText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#3b82f6',
-  },
-  filterButtonTextActive: {
-    color: '#3b82f6',
-    fontWeight: 'bold',
-  },
-  actionsRow: {
-    marginHorizontal: 12,
-    marginBottom: 16,
-    alignItems: 'flex-start',
-  },
-  defectsButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 14,
+  filterChip: {
+    paddingVertical: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
   },
-  defectsButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
+  filterChipActive: {
+    borderWidth: 1.5,
+  },
+  filterChipText: {
+    fontSize: 13,
     fontWeight: '700',
+    color: premiumColors.textSecondary,
   },
-  projectsRowScroll: {
-    flexDirection: 'row',
-    paddingBottom: 8,
+  filterChipTextActive: {
+    color: '#fff',
   },
   projectsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    alignSelf: 'center',
+    marginTop: 4,
+    columnGap: GRID_GAP,
+    rowGap: 4,
   },
-  projectCardWrapper: {
-    alignItems: 'center',
-    marginRight: CARD_MARGIN,
-    marginBottom: CARD_MARGIN,
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  projectCircleShadow: {
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  projectName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#3b82f6',
-    marginTop: 8,
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  riskLabelWrapper: {
-    marginTop: 2,
+  projectCell: {
+    width: PROJECT_CARD_SIZE,
     alignItems: 'center',
   },
-  riskLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    paddingHorizontal: 12,
-    paddingVertical: 3,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginTop: 2,
+  emptyState: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    paddingVertical: 28,
+    gap: 10,
+    width: '100%',
   },
   noProjectsText: {
-    fontSize: 16,
-    color: '#6b7280',
-    fontStyle: 'italic',
-    marginTop: 24,
-    marginLeft: 8,
-  },
-  projectSelectorContainer: {
-    backgroundColor: '#fff',
-    marginHorizontal: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    fontSize: 15,
+    color: premiumColors.textSecondary,
+    fontWeight: '500',
   },
 });
 

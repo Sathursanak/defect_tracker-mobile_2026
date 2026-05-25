@@ -1,7 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import RoundIcon from './RoundIcon';
-
 
 interface StatusCardProps {
   icon: React.ReactNode;
@@ -10,65 +8,80 @@ interface StatusCardProps {
   desc: string;
   color: string;
   style?: ViewStyle;
+  showDivider?: boolean;
 }
 
-const StatusCard: React.FC<StatusCardProps> = ({ icon, label, count, desc, color, style }) => (
-  <View style={[styles.statusCard, { borderColor: color }, style]}>
-    <View style={styles.iconCountRow}>
-      <RoundIcon size={32} backgroundColor={color} style={{ borderWidth: 2, borderColor: 'white', marginRight: 4 }}>
-        {React.isValidElement(icon) ? React.cloneElement(icon as any, { color: '#fff', size: 18 }) : icon}
-      </RoundIcon>
-      <Text style={[styles.statusCardCount, { color }]}>{count}</Text>
+const StatusCard: React.FC<StatusCardProps> = ({
+  icon,
+  label,
+  count,
+  desc,
+  color,
+  style,
+  showDivider = false,
+}) => (
+  <View
+    accessibilityRole="text"
+    accessibilityLabel={`${label}, ${count}`}
+    style={[styles.statCell, showDivider && styles.statCellDivider, style]}
+  >
+    <Text style={[styles.count, { color }]}>{count}</Text>
+    <View style={styles.labelRow}>
+      {React.isValidElement(icon)
+        ? React.cloneElement(icon as React.ReactElement<{ color?: string; size?: number }>, {
+            color,
+            size: 14,
+          })
+        : icon}
+      <Text style={styles.label} numberOfLines={2}>
+        {label}
+      </Text>
     </View>
-    <Text style={styles.statusCardLabel}>{label}</Text>
-    <Text style={styles.statusCardDesc} numberOfLines={2}>{desc}</Text>
+    <Text style={styles.desc} numberOfLines={1}>
+      {desc}
+    </Text>
   </View>
 );
 
 const styles = StyleSheet.create({
-  statusCard: {
+  statCell: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
-    borderWidth: 1.5,
-    borderColor: '#eee',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-    marginBottom: 4,
-    minWidth: 100,
-    maxWidth: 110,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    minWidth: 0,
   },
-  iconCountRow: {
+  statCellDivider: {
+    borderRightWidth: 1,
+    borderRightColor: '#DBEAFE',
+  },
+  count: {
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 3,
     marginBottom: 2,
+    paddingHorizontal: 2,
   },
-  statusCardLabel: {
-    fontSize: 13,
-    color: '#3b82f6',
-    fontWeight: 'bold',
-    marginBottom: 1,
-    textAlign: 'center',
-  },
-  statusCardCount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-  statusCardDesc: {
-    fontSize: 10,
+  label: {
+    fontSize: 11,
     fontWeight: '600',
+    color: '#6b7280',
     textAlign: 'center',
-    marginTop: 1,
-    color: '#444',
+  },
+  desc: {
+    fontSize: 9,
+    fontWeight: '500',
+    color: '#9ca3af',
+    textAlign: 'center',
   },
 });
 
-export default StatusCard; 
+export default StatusCard;

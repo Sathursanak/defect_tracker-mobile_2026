@@ -5,13 +5,21 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  StatusBar,
-  ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import BackButton from '../components/BackButton';
-import RoundIcon from '../components/RoundIcon';
+import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import BackButton from '../components/BackButton';
+import PremiumAuthShell from '../components/PremiumAuthShell';
+import {
+  premiumColors,
+  premiumGradients,
+  premiumShadows,
+  premiumRadius,
+} from '../theme/premiumTheme';
 
 const ForgotPasswordPage = () => {
   const navigation = useNavigation();
@@ -20,258 +28,271 @@ const ForgotPasswordPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   return (
-    <ImageBackground
-      source={require('../assets/images/background.png')}
-      style={styles.container}
-      resizeMode="cover"
-    >
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <View style={styles.overlay}>
+    <PremiumAuthShell>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <BackButton
           onPress={() => navigation.goBack()}
           style={styles.backButton}
-          iconColor="#FFFFFF"
-          textStyle={{ color: '#FFFFFF' }}
+          iconColor={premiumColors.textOnDark}
+          textStyle={{ color: premiumColors.textOnDark }}
         />
-        <View style={styles.card}>
-          <View style={styles.centeredIconWrapper}>
-            <RoundIcon size={72} backgroundColor="#60A5FA">
-              <Ionicons name="mail-outline" size={40} color="#fff" />
-            </RoundIcon>
-          </View>
-          <Text style={styles.title}>Reset Password</Text>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              <Ionicons name="mail-outline" size={18} /> Email Address
-            </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your email address"
-              placeholderTextColor="#6b7280"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-          </View>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.card, premiumShadows.card]}>
+            <LinearGradient
+              colors={premiumGradients.logoRing}
+              style={styles.iconRing}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.iconInner}>
+                <Ionicons name="key" size={34} color={premiumColors.accent} />
+              </View>
+            </LinearGradient>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              <Ionicons name="lock-closed-outline" size={18} /> New Password
+            <Text style={styles.title}>Reset Password</Text>
+            <Text style={styles.subtitle}>
+              Enter your email and choose a new secure password
             </Text>
-            <View style={styles.inputIconWrapper}>
-              <TextInput
-                style={[styles.input, styles.inputWithIcon]}
-                placeholder="Enter new password"
-                placeholderTextColor="#6b7280"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIconTouchable}
-              >
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Email Address</Text>
+              <View style={styles.inputShell}>
                 <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={22}
-                  color="#6b7280"
+                  name="mail-outline"
+                  size={20}
+                  color={premiumColors.primary}
+                  style={styles.inputIcon}
                 />
-              </TouchableOpacity>
+                <TextInput
+                  style={styles.input}
+                  placeholder="you@company.com"
+                  placeholderTextColor="#94A3B8"
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+              </View>
             </View>
-          </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              <Ionicons name="lock-closed-outline" size={18} /> Confirm Password
-            </Text>
-            <View style={styles.inputIconWrapper}>
-              <TextInput
-                style={[styles.input, styles.inputWithIcon]}
-                placeholder="Confirm new password"
-                placeholderTextColor="#6b7280"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={styles.eyeIconTouchable}
-              >
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>New Password</Text>
+              <View style={styles.inputShell}>
                 <Ionicons
-                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={22}
-                  color="#6b7280"
+                  name="lock-closed-outline"
+                  size={20}
+                  color={premiumColors.primary}
+                  style={styles.inputIcon}
                 />
-              </TouchableOpacity>
+                <TextInput
+                  style={[styles.input, styles.inputWithIcon]}
+                  placeholder="Enter new password"
+                  placeholderTextColor="#94A3B8"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeBtn}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={22}
+                    color={premiumColors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
 
-          <TouchableOpacity style={styles.sendButton}>
-            <View style={styles.sendButtonContent}>
-              <Ionicons
-                name="refresh-outline"
-                size={20}
-                color="#fff"
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.sendButtonText}>Reset</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Confirm Password</Text>
+              <View style={styles.inputShell}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color={premiumColors.primary}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={[styles.input, styles.inputWithIcon]}
+                  placeholder="Confirm new password"
+                  placeholderTextColor="#94A3B8"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={styles.eyeBtn}
+                >
+                  <Ionicons
+                    name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={22}
+                    color={premiumColors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
-          </TouchableOpacity>
 
-          <Text style={styles.signInLinkWrapper}>
-            Remember your password?{' '}
-            <Text style={styles.signInLink} onPress={() => navigation.goBack()}>
-              Sign in here
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={[styles.resetWrap, premiumShadows.button]}
+            >
+              <LinearGradient
+                colors={premiumGradients.primaryButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.resetButton}
+              >
+                <Ionicons name="refresh" size={20} color="#fff" style={styles.resetIcon} />
+                <Text style={styles.resetButtonText}>Reset Password</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <Text style={styles.signInLinkWrapper}>
+              Remember your password?{' '}
+              <Text style={styles.signInLink} onPress={() => navigation.goBack()}>
+                Sign in
+              </Text>
             </Text>
-          </Text>
-        </View>
-      </View>
-    </ImageBackground>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </PremiumAuthShell>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  overlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 12,
-  },
+  flex: { flex: 1 },
   backButton: {
     position: 'absolute',
     top: 48,
-    left: 24,
+    left: 20,
     zIndex: 2,
   },
-  card: {
-    width: '100%',
-    maxWidth: 400,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 32,
-    padding: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.2,
-    shadowRadius: 25,
-    elevation: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-    alignSelf: 'center',
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 48,
+    paddingTop: 100,
   },
-  centeredIconWrapper: {
+  card: {
+    backgroundColor: premiumColors.surfaceGlass,
+    borderRadius: premiumRadius.card,
+    padding: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  iconRing: {
+    width: 76,
+    height: 76,
+    borderRadius: 22,
+    padding: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  iconInner: {
+    flex: 1,
+    borderRadius: 20,
+    backgroundColor: premiumColors.surfaceMuted,
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
   },
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#0F172A',
+    color: premiumColors.textPrimary,
     textAlign: 'center',
-    marginTop: 8,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#64748B',
+    fontSize: 14,
+    color: premiumColors.textSecondary,
     textAlign: 'center',
-    marginBottom: 18,
-    marginTop: 2,
+    marginBottom: 22,
+    marginTop: 6,
+    lineHeight: 20,
+    paddingHorizontal: 8,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   inputLabel: {
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 6,
-    fontSize: 15,
+    fontWeight: '600',
+    color: premiumColors.textLabel,
+    marginBottom: 8,
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
+  inputShell: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: premiumColors.inputBg,
+    borderRadius: premiumRadius.input,
+    borderWidth: 1.5,
+    borderColor: premiumColors.inputBorder,
+    paddingHorizontal: 12,
+    minHeight: 52,
+  },
+  inputIcon: {
+    marginRight: 8,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    flex: 1,
     fontSize: 16,
-    backgroundColor: '#f9fafb',
-    color: '#22223b',
-    marginBottom: 0,
+    color: premiumColors.textPrimary,
+    paddingVertical: 12,
   },
-  sendButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 20,
-    paddingVertical: 16,
-    alignItems: 'center',
+  inputWithIcon: {
+    paddingRight: 36,
+  },
+  eyeBtn: {
+    padding: 4,
+  },
+  resetWrap: {
+    borderRadius: premiumRadius.button,
+    overflow: 'hidden',
     marginTop: 8,
-    marginBottom: 16,
-    shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
+    marginBottom: 18,
   },
-  sendButtonContent: {
+  resetButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: premiumRadius.button,
   },
-  inputWithIcon: {
-    paddingRight: 40,
+  resetIcon: {
+    marginRight: 8,
   },
-  inputIconWrapper: {
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  eyeIconTouchable: {
-    position: 'absolute',
-    right: 10,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    height: '100%',
-  },
-  sendButtonText: {
+  resetButtonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 18,
-    letterSpacing: 0.5,
-  },
-  infoBox: {
-    backgroundColor: '#f3f6fa',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  infoTitle: {
-    color: '#0F172A',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  infoDesc: {
-    color: '#6b7280',
-    fontWeight: 'normal',
-    fontSize: 14,
+    fontSize: 17,
+    letterSpacing: 0.3,
   },
   signInLinkWrapper: {
     textAlign: 'center',
-    color: '#64748B',
-    fontSize: 15,
-    marginTop: 8,
+    color: premiumColors.textSecondary,
+    fontSize: 14,
   },
   signInLink: {
-    color: '#3b82f6',
-    fontWeight: 'bold',
-    textDecorationLine: 'underline',
+    color: premiumColors.primary,
+    fontWeight: '700',
   },
 });
 

@@ -7,7 +7,10 @@ import {
   ViewStyle,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { premiumNav, premiumShadowsNav, premiumRadius } from '../theme/premiumTheme';
 
 interface FooterProps {
   style?: ViewStyle;
@@ -18,16 +21,14 @@ type FooterTab = 'home' | 'defects' | '';
 const Footer: React.FC<FooterProps> = ({ style }) => {
   const navigation = useNavigation();
   const route = useRoute();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<FooterTab>('');
 
-  // Update active tab based on current route
   useEffect(() => {
     if (route.name === 'Dashboard') {
       setActiveTab('home');
     } else if (route.name === 'Defects') {
       setActiveTab('defects');
-    } else if (route.name === 'ProjectDetails') {
-      setActiveTab('');
     } else {
       setActiveTab('');
     }
@@ -35,8 +36,6 @@ const Footer: React.FC<FooterProps> = ({ style }) => {
 
   const handleTabPress = (tabName: FooterTab, onPress?: () => void) => {
     setActiveTab(tabName);
-
-    // Execute navigation immediately for better responsiveness
     if (onPress) {
       onPress();
     }
@@ -44,98 +43,116 @@ const Footer: React.FC<FooterProps> = ({ style }) => {
 
   const handleHomePress = () => {
     handleTabPress('home', () => {
-      (navigation as any).navigate('Dashboard');
+      (navigation as { navigate: (screen: string) => void }).navigate('Dashboard');
     });
   };
 
   const handleDefectsPress = () => {
     handleTabPress('defects', () => {
-      (navigation as any).navigate('Defects');
+      (navigation as { navigate: (screen: string) => void }).navigate('Defects');
     });
   };
 
-  return (
-    <View style={[styles.footerWrapper, style]}>
+  const showDefectsTab = route.name !== 'Dashboard';
+
+  const renderTab = (
+    tab: FooterTab,
+    label: string,
+    iconFocused: string,
+    iconOutline: string,
+    onPress: () => void,
+  ) => {
+    const isActive = activeTab === tab;
+    return (
       <TouchableOpacity
-        style={[styles.iconButton, activeTab === 'home' && styles.activeButton]}
-        onPress={handleHomePress}
-        activeOpacity={0.6}
+        style={[styles.tab, isActive && styles.tabActive]}
+        onPress={onPress}
+        activeOpacity={0.85}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: isActive }}
       >
         <Ionicons
-          name={activeTab === 'home' ? 'home' : 'home-outline'}
-          size={24}
-          color="#ffffff"
+          name={isActive ? iconFocused : iconOutline}
+          size={22}
+          color={isActive ? premiumNav.tabActiveIcon : premiumNav.tabInactiveIcon}
         />
-        <Text style={styles.iconLabel}>Home</Text>
-      </TouchableOpacity>
-
-      {route.name !== 'Dashboard' && (
-        <TouchableOpacity
-          style={[styles.iconButton, activeTab === 'defects' && styles.activeButton]}
-          onPress={handleDefectsPress}
-          activeOpacity={0.6}
+        <Text
+          style={[
+            styles.tabLabel,
+            isActive ? styles.tabLabelActive : styles.tabLabelInactive,
+          ]}
         >
-          <Ionicons
-            name={activeTab === 'defects' ? 'bug' : 'bug-outline'}
-            size={24}
-            color="#ffffff"
-          />
-          <Text style={styles.iconLabel}>Defects</Text>
-        </TouchableOpacity>
-      )}
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
+  return (
+    <View style={[styles.footerOuter, premiumShadowsNav.footer, style]}>
+      <LinearGradient
+        colors={premiumNav.footerGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.footerGradient, { paddingBottom: Math.max(insets.bottom, 12) }]}
+      >
+        <View style={styles.tabRow}>
+          {renderTab('home', 'Home', 'home', 'home-outline', handleHomePress)}
+          {showDefectsTab &&
+            renderTab('defects', 'Defects', 'bug', 'bug-outline', handleDefectsPress)}
+        </View>
+      </LinearGradient>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  footerWrapper: {
+  footerOuter: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#3b82f6', // Theme color
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-evenly', // Changed from space-around to space-evenly
-    alignItems: 'center',
-    borderTopWidth: 0,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 8,
     zIndex: 1000,
+    borderTopLeftRadius: premiumRadius.footer,
+    borderTopRightRadius: premiumRadius.footer,
+    overflow: 'hidden',
   },
-  iconButton: {
+  footerGradient: {
+    paddingTop: 10,
+    paddingHorizontal: 20,
+  },
+  tabRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  tab: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 8, // Reduced padding to give more space for text
-    borderRadius: 8,
-    backgroundColor: 'transparent',
-    width: 90, // Increased width to accommodate full text
-    height: 60, // Fixed height for consistency
+    paddingHorizontal: 20,
+    borderRadius: premiumRadius.tab,
+    minWidth: 88,
   },
-
-  activeButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle highlight for active state
-    borderRadius: 8,
+  tabActive: {
+    backgroundColor: premiumNav.tabActiveBg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  iconLabel: {
-    fontSize: 9, // Smaller font to fit full text
-    color: '#ffffff', // White text
-    marginTop: 3, // Reduced margin
-    fontWeight: '500',
-    textAlign: 'center',
-    flexShrink: 0, // Prevent shrinking
-    width: '100%', // Use full width available
-    paddingHorizontal: 2, // Small padding to prevent edge cutoff
+  tabLabel: {
+    fontSize: 11,
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  tabLabelActive: {
+    color: premiumNav.tabActiveIcon,
+  },
+  tabLabelInactive: {
+    color: premiumNav.tabInactiveLabel,
   },
 });
 

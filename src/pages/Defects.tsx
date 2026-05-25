@@ -57,7 +57,7 @@ const Defects = () => {
 
   const [projects, setProjects] = useState<string[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
-  
+
   const [filteredDefects, setFilteredDefects] = useState<DefectRecord[]>([]);
   const [expandedCardIds, setExpandedCardIds] = useState<string[]>([]);
   const [activeStatusDropdownId, setActiveStatusDropdownId] = useState<string | null>(null);
@@ -120,13 +120,13 @@ const Defects = () => {
   // Fetch unique filter options and project risk metadata when project switches
   useEffect(() => {
     if (!selectedProject) return;
-    
+
     const fetchProjectDetailsAndFilters = async () => {
       setFiltersLoading(true);
       try {
         const details = await api.getProjectDetails(selectedProject);
         setProjectDetails(details);
-        
+
         const options = await api.getFilterOptions(selectedProject);
         setFilterOptions(options);
       } catch (error) {
@@ -135,7 +135,7 @@ const Defects = () => {
         setFiltersLoading(false);
       }
     };
-    
+
     fetchProjectDetailsAndFilters();
   }, [selectedProject, refreshTrigger]);
 
@@ -229,7 +229,7 @@ const Defects = () => {
     setSelectedProject(project);
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
     projectSelectorRef.current?.scrollTo({ x: 0, animated: true });
-    
+
     // Reset filters for new project to avoid mismatching lookups
     setSelectedSeverity('All');
     setSelectedPriority('All');
@@ -706,9 +706,9 @@ const Defects = () => {
                         <Text style={styles.moduleTagText}>{defect.module} &gt; {defect.submodule}</Text>
                       </View>
                     </View>
-                    
+
                     {/* Status Dropdown Trigger */}
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.cardStatusBadgeDropdown, { backgroundColor: statusColors.bg }]}
                       activeOpacity={0.7}
                       onPress={() => {
@@ -767,9 +767,9 @@ const Defects = () => {
 
                     <View style={styles.rightFooterRow}>
                       {/* Interactive Assignee Dropdown Trigger */}
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={[
-                          styles.assignedContainerDropdown, 
+                          styles.assignedContainerDropdown,
                           isAssigneeDropdownOpen && styles.assignedContainerDropdownActive
                         ]}
                         activeOpacity={0.7}
@@ -814,7 +814,7 @@ const Defects = () => {
                   {/* Accordion Expandable Detailed Section */}
                   {isExpanded && (
                     <View style={styles.expandedDetailsSection}>
-                      
+
                       {/* Steps to Reproduce */}
                       <View style={styles.detailsBlock}>
                         <Text style={styles.detailsBlockTitle}>Steps to Reproduce:</Text>
@@ -830,7 +830,7 @@ const Defects = () => {
                           <View style={styles.attachmentBox}>
                             <Ionicons name="document-attach-outline" size={18} color="#3b82f6" />
                             <Text style={styles.attachmentName} numberOfLines={1}>{defect.attachment}</Text>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                               style={styles.attachmentViewBtn}
                               onPress={() => Alert.alert('Open File', `Opening attachment: ${defect.attachment}`)}
                             >
@@ -890,7 +890,7 @@ const Defects = () => {
                   )}
 
                   {/* Accordion Expansion Trigger Button */}
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.accordionToggleBtn}
                     activeOpacity={0.6}
                     onPress={() => toggleCardExpansion(defect.id)}
@@ -898,11 +898,11 @@ const Defects = () => {
                     <Text style={styles.accordionToggleBtnText}>
                       {isExpanded ? "Hide Details" : "Show More Details"}
                     </Text>
-                    <Ionicons 
-                      name={isExpanded ? "chevron-up" : "chevron-down"} 
-                      size={14} 
-                      color="#3b82f6" 
-                      style={{ marginLeft: 4 }} 
+                    <Ionicons
+                      name={isExpanded ? "chevron-up" : "chevron-down"}
+                      size={14}
+                      color="#3b82f6"
+                      style={{ marginLeft: 4 }}
                     />
                   </TouchableOpacity>
 

@@ -8,8 +8,18 @@ import {
   StatusBar,
   Platform,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LogoutButton from './LogoutButton';
+import {
+  premiumColors,
+  premiumGradients,
+  premiumNav,
+  premiumShadows,
+  premiumShadowsNav,
+  premiumRadius,
+} from '../theme/premiumTheme';
 
 interface TopHeaderProps {
   title?: string;
@@ -24,61 +34,107 @@ interface TopHeaderProps {
   onRightActionPress?: () => void;
 }
 
+/** Content block: padding + minHeight + accent bar */
+const HEADER_BODY_HEIGHT = 10 + 56 + 10 + 3;
+
+export function useTopHeaderHeight(extraSpacing = 12): number {
+  const insets = useSafeAreaInsets();
+  const topPad =
+    Platform.OS === 'ios' ? insets.top : StatusBar.currentHeight ?? 24;
+  return topPad + HEADER_BODY_HEIGHT + extraSpacing;
+}
+
 const TopHeader: React.FC<TopHeaderProps> = ({
   title,
   style,
-  backgroundColor = '#ffffff',
-  titleColor = '#3b82f6',
+  backgroundColor = premiumNav.headerBg,
+  titleColor = premiumColors.textPrimary,
+  iconColor = premiumColors.primary,
   onBackPress,
   showLogout,
   rightActionIcon,
-  rightActionColor = '#3b82f6',
+  rightActionColor = premiumColors.primary,
   onRightActionPress,
 }) => {
+  const insets = useSafeAreaInsets();
+  const topPad = Platform.OS === 'ios' ? insets.top : StatusBar.currentHeight ?? 0;
+
   return (
     <>
       <StatusBar
         barStyle="dark-content"
         backgroundColor={backgroundColor}
-        translucent={false}
+        translucent={Platform.OS === 'android'}
       />
-      <View style={[styles.container, { backgroundColor }, style]}>
+      <View
+        style={[
+          styles.container,
+          premiumShadowsNav.header,
+          { backgroundColor, paddingTop: topPad },
+          style,
+        ]}
+      >
         <View style={styles.content}>
-          {/* Center - App icon and title */}
-          <View style={styles.centerSection}>
-            {onBackPress && (
-              <TouchableOpacity onPress={onBackPress} style={styles.headerBackButton}>
-                <Ionicons name="arrow-back-outline" size={28} color="#3b82f6" />
-              </TouchableOpacity>
-            )}
-            <View
-              style={[styles.appIconContainer, { backgroundColor: '#3b82f6' }]}
+          {onBackPress ? (
+            <TouchableOpacity
+              onPress={onBackPress}
+              style={styles.backButton}
+              activeOpacity={0.75}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="bug-outline" size={28} color="#ffffff" />
-            </View>
-            {title && (
-              <Text style={[styles.title, { color: titleColor }]}>{title}</Text>
+              <Ionicons name="chevron-back" size={22} color={iconColor} />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.sideSpacer} />
+          )}
+
+          <View style={styles.centerSection}>
+            <LinearGradient
+              colors={premiumGradients.logoRing}
+              style={styles.appIconRing}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.appIconInner}>
+                <Ionicons name="bug" size={20} color="#fff" />
+              </View>
+            </LinearGradient>
+            {title ? (
+              <Text style={[styles.title, { color: titleColor }]} numberOfLines={1}>
+                {title}
+              </Text>
+            ) : null}
+          </View>
+
+          <View style={styles.rightSlot}>
+            {showLogout ? (
+              <View style={styles.actionPill}>
+                <LogoutButton iconColor={rightActionColor} iconSize={22} />
+              </View>
+            ) : rightActionIcon && onRightActionPress ? (
+              <TouchableOpacity
+                style={styles.actionPill}
+                onPress={onRightActionPress}
+                activeOpacity={0.75}
+              >
+                <Ionicons
+                  name={rightActionIcon}
+                  size={22}
+                  color={rightActionColor}
+                />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.sideSpacer} />
             )}
           </View>
-          {showLogout ? (
-            <LogoutButton
-              style={styles.rightAction}
-              iconColor={rightActionColor}
-            />
-          ) : rightActionIcon && onRightActionPress ? (
-            <TouchableOpacity
-              style={styles.rightAction}
-              onPress={onRightActionPress}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={rightActionIcon}
-                size={24}
-                color={rightActionColor}
-              />
-            </TouchableOpacity>
-          ) : null}
         </View>
+
+        <LinearGradient
+          colors={premiumNav.headerAccent}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.accentBar}
+        />
       </View>
     </>
   );
@@ -91,56 +147,73 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
-    paddingTop: Platform.OS === 'ios' ? 44 : 0, // Account for status bar on iOS
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: premiumNav.headerBorder,
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     minHeight: 56,
   },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: premiumColors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sideSpacer: {
+    width: 40,
+    height: 40,
+  },
   centerSection: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 8,
+    minWidth: 0,
   },
-  rightAction: {
-    position: 'absolute',
-    right: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 40,
+  appIconRing: {
     width: 40,
+    height: 40,
+    borderRadius: premiumRadius.headerIcon,
+    padding: 2,
+    marginRight: 10,
+    ...premiumShadows.logo,
   },
-  headerBackButton: {
-    marginRight: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  appIconContainer: {
-    marginRight: 12,
-    padding: 8,
-    borderRadius: 20,
+  appIconInner: {
+    flex: 1,
+    borderRadius: premiumRadius.headerIcon - 2,
+    backgroundColor: premiumColors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    // textAlign: 'center',
-    flex: 1,
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: -0.3,
     flexShrink: 1,
+  },
+  rightSlot: {
+    width: 40,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  actionPill: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: premiumColors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accentBar: {
+    height: 3,
+    width: '100%',
   },
 });
 
