@@ -7,22 +7,19 @@ import {
   Animated,
   TouchableOpacity,
   Dimensions,
-  StatusBar,
-  ImageBackground,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
+import PremiumAuthShell from '../components/PremiumAuthShell';
+import {
+  premiumColors,
+  premiumGradients,
+  premiumShadows,
+  premiumRadius,
+} from '../theme/premiumTheme';
 
-const { width, height } = Dimensions.get('window');
-
-const Bug = () => <Ionicons name="bug" size={48} color="#60A5FA" />;
-const ArrowRight = () => (
-  <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
-);
-const CheckIcon = () => (
-  <Ionicons name="checkmark-circle" size={20} color="#60A5FA" />
-);
+const { height } = Dimensions.get('window');
 
 type RootStackParamList = {
   Login: undefined;
@@ -30,38 +27,42 @@ type RootStackParamList = {
 
 const Welcome = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-
-  // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
-
+  const slideAnim = useRef(new Animated.Value(40)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
   const [displayedSubtitle, setDisplayedSubtitle] = useState('');
   const fullSubtitle = 'Professional Defect Management';
 
   useEffect(() => {
-    // Elegant entrance animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1000,
+        duration: 900,
         useNativeDriver: true,
       }),
       Animated.spring(slideAnim, {
         toValue: 0,
-        tension: 20,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 20,
-        friction: 7,
+        tension: 22,
+        friction: 8,
         useNativeDriver: true,
       }),
     ]).start();
 
-    // Typewriter effect for subtitle
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: 1,
+          duration: 2200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 2200,
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+
     const subtitleTimer = setTimeout(() => {
       let currentIndex = 0;
       const letterInterval = setInterval(() => {
@@ -72,213 +73,192 @@ const Welcome = () => {
           clearInterval(letterInterval);
         }
       }, 40);
-
       return () => clearInterval(letterInterval);
-    }, 600);
+    }, 500);
 
-    return () => {
-      clearTimeout(subtitleTimer);
-    };
-  }, [fadeAnim, slideAnim, scaleAnim]);
+    return () => clearTimeout(subtitleTimer);
+  }, [fadeAnim, slideAnim, floatAnim]);
+
+  const cardLift = floatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -6],
+  });
 
   return (
-    <ImageBackground
-      source={require('../assets/images/background.png')}
-      style={styles.container}
-      resizeMode="cover"
-    >
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* Top Section - Logo & Title */}
+    <PremiumAuthShell>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <Animated.View
           style={[
             styles.headerContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
-            },
-          ]}
-        >
-          <View style={styles.logoWrapper}>
-            <View style={styles.logoInner}>
-              <Bug />
-            </View>
-          </View>
-          
-          <Text style={styles.title}>Defect Tracker</Text>
-          <Text style={styles.subtitle}>
-            {displayedSubtitle}
-          </Text>
-        </Animated.View>
-
-        {/* Bottom Section - Action Card */}
-        <Animated.View
-          style={[
-            styles.cardContainer,
             {
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
             },
           ]}
         >
-          <View style={styles.glassCard}>
+          <LinearGradient
+            colors={premiumGradients.logoRing}
+            style={[styles.logoRing, premiumShadows.logo]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.logoInner}>
+              <Ionicons name="bug" size={44} color={premiumColors.accent} />
+            </View>
+          </LinearGradient>
+
+          <Text style={styles.title}>Defect Tracker</Text>
+          <Text style={styles.subtitle}>{displayedSubtitle}</Text>
+          <View style={styles.titleUnderline} />
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.cardContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }, { translateY: cardLift }],
+            },
+          ]}
+        >
+          <View style={[styles.premiumCard, premiumShadows.card]}>
+            <View style={styles.cardAccent} />
             <Text style={styles.cardTitle}>Master Your Workflow</Text>
             <Text style={styles.cardDescription}>
-              Experience seamless bug tracking and agile project management all in one premium platform.
+              Seamless bug tracking and agile project management in one refined
+              mobile experience.
             </Text>
 
             <TouchableOpacity
-              activeOpacity={0.9}
+              activeOpacity={0.88}
               onPress={() => navigation.navigate('Login')}
-              style={styles.buttonShadow}
+              style={[styles.buttonWrap, premiumShadows.button]}
             >
               <LinearGradient
-                colors={['#60A5FA', '#60A5FA']}
+                colors={premiumGradients.primaryButton}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+                end={{ x: 1, y: 1 }}
                 style={styles.ctaButton}
               >
                 <Text style={styles.ctaButtonText}>Get Started</Text>
-                <ArrowRight />
+                <Ionicons name="arrow-forward" size={22} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
           </View>
         </Animated.View>
-
       </ScrollView>
-    </ImageBackground>
+    </PremiumAuthShell>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'space-between',
-    padding: 24,
-    paddingTop: height * 0.15,
-    paddingBottom: 40,
+    paddingHorizontal: 24,
+    paddingTop: height * 0.12,
+    paddingBottom: 48,
   },
   headerContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
-  logoWrapper: {
-    width: 100,
-    height: 100,
-    borderRadius: 30,
-    backgroundColor: 'rgba(96, 165, 250, 0.1)',
+  logoRing: {
+    width: 108,
+    height: 108,
+    borderRadius: premiumRadius.logo,
+    padding: 3,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(96, 165, 250, 0.2)',
-    shadowColor: '#60A5FA',
-    shadowOffset: { width: 0, height: 10 },
-    // shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    marginBottom: 28,
   },
   logoInner: {
-    width: 70,
-    height: 70,
-    borderRadius: 20,
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    width: '100%',
+    height: '100%',
+    borderRadius: premiumRadius.logo - 3,
+    backgroundColor: premiumColors.logoInnerBg,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: premiumColors.logoInnerBorder,
   },
   title: {
-    fontSize: 40,
+    fontSize: 38,
     fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-    marginBottom: 8,
+    color: premiumColors.textOnDark,
+    letterSpacing: -0.8,
+    marginBottom: 10,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#94A3B8',
+    fontSize: 15,
+    color: premiumColors.textMutedOnDark,
     fontWeight: '500',
-    height: 24, // Keep height stable for typewriter
+    height: 22,
+    letterSpacing: 0.3,
   },
-  cursor: {
-    color: '#60A5FA',
-    fontWeight: 'bold',
+  titleUnderline: {
+    width: 48,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: premiumColors.primaryLight,
+    marginTop: 14,
+    opacity: 0.9,
   },
   cardContainer: {
     width: '100%',
-    marginBottom: 60,
   },
-  glassCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 32,
-    padding: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.2,
-    shadowRadius: 25,
-    elevation: 15,
+  premiumCard: {
+    backgroundColor: premiumColors.surfaceGlass,
+    borderRadius: premiumRadius.card,
+    padding: 28,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderColor: 'rgba(255, 255, 255, 0.65)',
+    overflow: 'hidden',
+  },
+  cardAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: premiumColors.primary,
+    borderTopLeftRadius: premiumRadius.card,
+    borderTopRightRadius: premiumRadius.card,
   },
   cardTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 12,
+    color: premiumColors.textPrimary,
+    marginBottom: 10,
+    marginTop: 4,
+    letterSpacing: -0.3,
   },
   cardDescription: {
     fontSize: 15,
-    color: '#64748B',
-    lineHeight: 24,
-    marginBottom: 24,
+    color: premiumColors.textSecondary,
+    lineHeight: 23,
+    marginBottom: 26,
   },
-  featuresList: {
-    marginBottom: 32,
-    gap: 12,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  featureText: {
-    fontSize: 15,
-    color: '#334155',
-    fontWeight: '500',
-  },
-  buttonShadow: {
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
-    borderRadius: 20,
-    marginBottom: 16,
+  buttonWrap: {
+    borderRadius: premiumRadius.button,
+    overflow: 'hidden',
   },
   ctaButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 18,
-    borderRadius: 20,
-    gap: 12,
-    opacity: 0.9,
+    paddingVertical: 17,
+    borderRadius: premiumRadius.button,
+    gap: 10,
   },
   ctaButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  footerText: {
-    textAlign: 'center',
-    fontSize: 13,
-    color: '#94A3B8',
-    fontWeight: '500',
+    letterSpacing: 0.4,
   },
 });
 

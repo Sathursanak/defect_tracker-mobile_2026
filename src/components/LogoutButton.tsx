@@ -3,6 +3,7 @@ import { TouchableOpacity, Alert, StyleSheet, ViewStyle } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { premiumColors } from '../theme/premiumTheme';
 
 interface LogoutButtonProps {
   style?: ViewStyle;
@@ -12,7 +13,7 @@ interface LogoutButtonProps {
 
 const LogoutButton: React.FC<LogoutButtonProps> = ({
   style,
-  iconColor = '#3b82f6',
+  iconColor = premiumColors.primary,
   iconSize = 24,
 }) => {
   const navigation = useNavigation();

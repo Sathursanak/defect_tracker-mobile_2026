@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, TouchableOpacity } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 
 interface ProjectCardProps {
@@ -12,24 +13,47 @@ interface ProjectCardProps {
   style?: ViewStyle;
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ name, risk, riskColor, icon, size, style }) => {
+const ProjectCard: React.FC<ProjectCardProps> = ({
+  name,
+  risk,
+  riskColor,
+  icon,
+  size,
+  style,
+}) => {
   const navigation = useNavigation();
 
   const handlePress = () => {
-    (navigation as any).navigate('ProjectDetails', {
-      projectName: name,
-      risk: risk,
-    });
+    (navigation as { navigate: (screen: string, params: object) => void }).navigate(
+      'ProjectDetails',
+      { projectName: name, risk },
+    );
   };
 
+  const circleSize = size - 32;
+
   return (
-    <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
-      <View style={[styles.projectCardWrapper, { width: size, height: size }, style]}>
-        <View style={[styles.circleCard, { backgroundColor: riskColor, width: size - 16, height: size - 16 }]}>
-          <View style={styles.iconContainer}>
-            {icon}
-          </View>
-          <Text style={styles.projectName}>{name}</Text>
+    <TouchableOpacity
+      onPress={handlePress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={name}
+      style={[styles.touchable, { width: size }, style]}
+    >
+      <View style={styles.cardShell}>
+        <View style={styles.chevronBadge}>
+          <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
+        </View>
+        <View
+          style={[
+            styles.circleCard,
+            { backgroundColor: riskColor, width: circleSize, height: circleSize },
+          ]}
+        >
+          <View style={styles.iconContainer}>{icon}</View>
+          <Text style={styles.projectName} numberOfLines={2}>
+            {name}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -37,48 +61,44 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ name, risk, riskColor, icon, 
 };
 
 const styles = StyleSheet.create({
-  projectCardWrapper: {
+  touchable: {
+    marginBottom: 8,
+    alignSelf: 'center',
+  },
+  cardShell: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 12,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    marginHorizontal: 4,
-    width: '48%',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  chevronBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 1,
   },
   circleCard: {
     borderRadius: 1000,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
   },
   iconContainer: {
-    marginBottom: 8,
+    marginBottom: 6,
   },
   projectName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 8,
-  },
-  riskLabelWrapper: {
-    alignItems: 'center',
-  },
-  riskLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#fff',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    overflow: 'hidden',
+    paddingHorizontal: 6,
   },
 });
 
-export default ProjectCard; 
+export default ProjectCard;
