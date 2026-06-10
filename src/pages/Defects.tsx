@@ -74,7 +74,7 @@ const Defects = () => {
   const [selectedRelease, setSelectedRelease] = useState('All');
   const [selectedAssignedTo, setSelectedAssignedTo] = useState('All');
   const [selectedEnteredBy, setSelectedEnteredBy] = useState('All');
-  const [isFiltersExpanded, setIsFiltersExpanded] = useState(true);
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
   // API Loading States
   const [projectsLoading, setProjectsLoading] = useState(true);
